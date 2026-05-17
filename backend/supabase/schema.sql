@@ -30,6 +30,17 @@ create table if not exists public.tasks (
 create index if not exists tasks_user_id_created_at_idx on public.tasks(user_id, created_at desc);
 create index if not exists tasks_user_id_deadline_idx on public.tasks(user_id, deadline);
 
+create table if not exists public.google_calendar_tokens (
+  user_id uuid primary key references public.users(id) on delete cascade,
+  access_token text null,
+  refresh_token text null,
+  scope text null,
+  token_type text null,
+  expiry_date bigint null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.assistant_chats (
   id uuid primary key,
   user_id uuid not null references public.users(id) on delete cascade,
@@ -53,6 +64,7 @@ create index if not exists assistant_messages_chat_id_created_at_idx on public.a
 -- Optional RLS (recommended if you later use anon/authenticated direct client access)
 alter table public.users enable row level security;
 alter table public.tasks enable row level security;
+alter table public.google_calendar_tokens enable row level security;
 alter table public.assistant_chats enable row level security;
 alter table public.assistant_messages enable row level security;
 
@@ -69,3 +81,14 @@ begin
   end if;
 end $$;
 
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='google_calendar_tokens' and policyname='google_calendar_tokens_owner_access'
+  ) then
+    create policy google_calendar_tokens_owner_access on public.google_calendar_tokens
+      for all
+      using (auth.uid() = user_id)
+      with check (auth.uid() = user_id);
+  end if;
+end $$;

@@ -16,6 +16,7 @@ const plannerRouter = require('./routes/planner')
 const analyticsRouter = require('./routes/analytics')
 const aiRouter = require('./routes/ai')
 const assistantRouter = require('./routes/assistant')
+const calendarRouter = require('./routes/calendar')
 
 const app = express()
 app.use(cors())
@@ -37,6 +38,7 @@ app.use('/api/planner', plannerRouter)
 app.use('/api/analytics', analyticsRouter)
 app.use('/api/ai', aiRouter)
 app.use('/api/assistant', assistantRouter)
+app.use('/api/calendar', calendarRouter)
 
 const PORT = process.env.PORT || 5050
 const server = app.listen(PORT, () => console.log(`Backend running on port ${PORT}`))

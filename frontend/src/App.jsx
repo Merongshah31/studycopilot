@@ -4,6 +4,7 @@ import Header from './components/Header'
 import Dashboard from './pages/Dashboard'
 import Tasks from './pages/Tasks'
 import Planner from './pages/Planner'
+import Calendar from './pages/Calendar'
 import Analytics from './pages/Analytics'
 import Assistant from './pages/Assistant'
 
@@ -12,6 +13,7 @@ export default function App() {
   const routeMap = [
     { test: (v) => v.startsWith('/dashboard'), view: Dashboard },
     { test: (v) => v.startsWith('/tasks'), view: Tasks },
+    { test: (v) => v.startsWith('/calendar'), view: Calendar },
     { test: (v) => v.startsWith('/planner'), view: Planner },
     { test: (v) => v.startsWith('/analytics'), view: Analytics },
     { test: (v) => v.startsWith('/assistant'), view: Assistant },
