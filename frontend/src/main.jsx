@@ -4,7 +4,7 @@ import App from './App'
 import Auth from './pages/Auth'
 import Home from './pages/Home'
 import DebugPanel from './components/DebugPanel'
-import { getToken } from './lib/authClient'
+import { getToken, loginAsGuest } from './lib/authClient'
 import { handleSupabaseAuth } from './lib/supabaseClient'
 import { pushDebugEvent } from './lib/debug'
 import './index.css'
@@ -13,6 +13,7 @@ const root = createRoot(document.getElementById('root'))
 
 function RouterApp() {
   const [hash, setHash] = useState(window.location.hash.replace('#', '') || '/')
+  const [bootstrappingGuest, setBootstrappingGuest] = useState(false)
 
   useEffect(() => {
     const onHash = () => setHash(window.location.hash.replace('#', '') || '/')
@@ -20,11 +21,32 @@ function RouterApp() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
+  useEffect(() => {
+    const run = async () => {
+      const forceGuest = String(import.meta.env.VITE_FORCE_GUEST_LOGIN || 'true').toLowerCase() === 'true'
+      if (!forceGuest) return
+      if (getToken() || localStorage.getItem('sp_supabase_access_token')) return
+      setBootstrappingGuest(true)
+      try {
+        pushDebugEvent('force-guest-login-start')
+        await loginAsGuest()
+        pushDebugEvent('force-guest-login-success')
+        window.location.hash = '#/dashboard'
+      } catch (error) {
+        pushDebugEvent('force-guest-login-error', { message: error.message })
+      } finally {
+        setBootstrappingGuest(false)
+      }
+    }
+    run()
+  }, [])
+
   const token = getToken()
   const hasSupabaseSessionToken = !!localStorage.getItem('sp_supabase_access_token')
   const isAuthed = !!token || hasSupabaseSessionToken
   const protectedRoutes = ['/dashboard', '/tasks', '/planner', '/analytics', '/assistant', '/schedule-import', '/weekly-schedule', '/profile']
   const requiresAuth = protectedRoutes.some((route) => hash.startsWith(route))
+  if (bootstrappingGuest) return <div className="min-h-screen flex items-center justify-center text-slate-600">Signing you in...</div>
   if (!isAuthed && requiresAuth) {
     window.location.hash = '#/auth'
     return <Auth />
