@@ -162,6 +162,59 @@ async function executeTaskStep({ supabase, userId, step }) {
   }
 }
 
+async function importTasksFromItems(supabase, userId, items) {
+  const sourceItems = Array.isArray(items) ? items : []
+  const { data: existing, error: existingError } = await supabase
+    .from('tasks')
+    .select('title')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1000)
+  if (existingError) throw new Error(existingError.message)
+
+  const titleSet = new Set((existing || []).map((x) => String(x.title || '').trim().toLowerCase()))
+  const now = new Date().toISOString()
+  const rows = []
+  let skipped = 0
+
+  for (const item of sourceItems) {
+    const title = String(item?.title || '').trim()
+    if (!title) continue
+    const key = title.toLowerCase()
+    if (titleSet.has(key)) {
+      skipped += 1
+      continue
+    }
+    titleSet.add(key)
+    rows.push({
+      id: uuidv4(),
+      user_id: userId,
+      title,
+      deadline: item?.deadline || null,
+      priority: normalizePriority(item?.priority),
+      completed: false,
+      created_at: now,
+    })
+  }
+
+  if (rows.length > 0) {
+    const { error } = await supabase.from('tasks').insert(rows)
+    if (error) throw new Error(error.message)
+  }
+
+  return {
+    status: 'ok',
+    action: 'import_tasks_from_pdf',
+    changed_count: rows.length,
+    changed: rows.map(taskView),
+    ui_events: TASK_UI_EVENTS,
+    message: `Imported ${rows.length} tasks${skipped > 0 ? `, skipped ${skipped} duplicates` : ''}.`,
+    inserted: rows.length,
+    skipped,
+  }
+}
+
 module.exports = {
   executeTaskStep,
+  importTasksFromItems,
 }

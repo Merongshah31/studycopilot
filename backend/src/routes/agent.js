@@ -62,6 +62,19 @@ router.post('/run', async (req, res) => {
         const result = await executeSchedulerStep({ supabase, userId: req.user.id, step })
         state.tool_results.push(result)
         state.ui_events.push(...(result.ui_events || []))
+      } else if (step.agent === 'ui') {
+        const uiEvent = step.action === 'open_schedule_import' ? 'NAVIGATE_SCHEDULE_IMPORT' : 'UI_UPDATED'
+        state.tool_results.push({
+          status: 'ok',
+          action: step.action,
+          changed_count: 0,
+          changed: [],
+          ui_events: [uiEvent],
+          message: uiEvent === 'NAVIGATE_SCHEDULE_IMPORT'
+            ? 'Opening Schedule Import page.'
+            : `UI action processed: ${step.action}`,
+        })
+        state.ui_events.push(uiEvent)
       } else {
         state.tool_results.push({
           status: 'partial',

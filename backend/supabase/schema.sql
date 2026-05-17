@@ -67,6 +67,21 @@ create table if not exists public.assistant_memories (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.schedule_imports (
+  id uuid primary key,
+  user_id uuid not null references public.users(id) on delete cascade,
+  file_name text not null default 'schedule.pdf',
+  storage_path text not null default '',
+  status text not null default 'previewed' check (status in ('previewed', 'imported', 'failed')),
+  total_items integer not null default 0,
+  inserted_count integer not null default 0,
+  skipped_count integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists schedule_imports_user_id_created_at_idx on public.schedule_imports(user_id, created_at desc);
+
 -- Optional RLS (recommended if you later use anon/authenticated direct client access)
 alter table public.users enable row level security;
 alter table public.tasks enable row level security;
@@ -74,6 +89,7 @@ alter table public.google_calendar_tokens enable row level security;
 alter table public.assistant_chats enable row level security;
 alter table public.assistant_messages enable row level security;
 alter table public.assistant_memories enable row level security;
+alter table public.schedule_imports enable row level security;
 
 -- Service-role backend can bypass RLS; these are for authenticated users if needed later.
 do $$
@@ -94,6 +110,18 @@ begin
     select 1 from pg_policies where schemaname='public' and tablename='assistant_memories' and policyname='assistant_memories_owner_access'
   ) then
     create policy assistant_memories_owner_access on public.assistant_memories
+      for all
+      using (auth.uid() = user_id)
+      with check (auth.uid() = user_id);
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='schedule_imports' and policyname='schedule_imports_owner_access'
+  ) then
+    create policy schedule_imports_owner_access on public.schedule_imports
       for all
       using (auth.uid() = user_id)
       with check (auth.uid() = user_id);

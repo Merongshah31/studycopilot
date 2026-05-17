@@ -96,6 +96,9 @@ export default function Assistant() {
         const events = Array.isArray(run?.ui_events) ? run.ui_events : []
         if (events.length > 0) {
           window.dispatchEvent(new CustomEvent('studypilot:agent-ui-events', { detail: { events } }))
+          if (events.includes('NAVIGATE_SCHEDULE_IMPORT')) {
+            window.location.hash = '#/schedule-import'
+          }
         }
       } else {
         const data = await apiFetch(`/assistant/chats/${chatId}/respond`, { method: 'POST', body: JSON.stringify({ content }) })

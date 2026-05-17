@@ -90,6 +90,16 @@ const INTENT_REGISTRY = [
       plan_steps: [{ step_id: 'planner-1', agent: 'planner', action: 'optimize_schedule', payload: { raw_text: text } }],
     }),
   },
+  {
+    intent: 'schedule_pdf_import',
+    confidence: 0.9,
+    patterns: [/((upload|import).*(pdf|schedule))|((muat naik|import).*(pdf|jadual))/i],
+    build: () => ({
+      requires_clarification: false,
+      clarification_question: '',
+      plan_steps: [{ step_id: 'ui-1', agent: 'ui', action: 'open_schedule_import', payload: {} }],
+    }),
+  },
 ]
 
 function buildPlanFromRegistry(requestText) {
@@ -129,4 +139,3 @@ module.exports = {
   INTENT_REGISTRY,
   buildPlanFromRegistry,
 }
-
