@@ -44,7 +44,9 @@ function RouterApp() {
 handleSupabaseAuth(async (session) => {
   try {
     const tokenKey = 'sp_supabase_access_token'
-    if (localStorage.getItem(tokenKey) === session.access_token) return
+    const existingSupabaseAccessToken = localStorage.getItem(tokenKey)
+    const existingBackendToken = localStorage.getItem('sp_token')
+    if (existingBackendToken && existingSupabaseAccessToken === session.access_token) return
     const body = {
       provider: 'supabase',
       providerId: session.user.id,
