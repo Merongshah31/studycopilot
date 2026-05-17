@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { Bot, MessageSquarePlus, Send, Trash2, User2 } from 'lucide-react'
 import Card from '../components/Card'
 import { apiFetch } from '../lib/api'
 
@@ -8,6 +9,7 @@ export default function Assistant() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const activeChat = useMemo(() => chats.find((chat) => chat.id === activeChatId), [chats, activeChatId])
 
@@ -44,6 +46,7 @@ export default function Assistant() {
   async function sendMessage(e) {
     e.preventDefault()
     if (!input.trim() || loading) return
+    setError('')
     let chatId = activeChatId
     if (!chatId) {
       const chat = await apiFetch('/assistant/chats', { method: 'POST', body: JSON.stringify({ title: 'New Chat' }) })
@@ -59,46 +62,123 @@ export default function Assistant() {
       setMessages((prev) => [...prev, data.userMessage, data.assistantMessage])
       setChats((prev) => prev.map((chat) => (chat.id === chatId ? { ...chat, title: data.chat?.title || chat.title, updatedAt: data.chat?.updatedAt || chat.updatedAt } : chat))
         .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || '')))
+    } catch (err) {
+      setError(err?.message || 'Failed to send message.')
     } finally {
       setLoading(false)
     }
   }
 
+  const starterPrompts = [
+    'Plan my study session for today',
+    'Prioritize my deadlines this week',
+    'Break down my hardest task into steps',
+  ]
+
+  async function useStarterPrompt(prompt) {
+    if (loading) return
+    setInput(prompt)
+  }
+
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold">AI Assistant</h2>
+      <div>
+        <h2 className="text-xl font-semibold">Nexa Assistant</h2>
+        <p className="text-sm text-gray-500">Your calm study copilot with memory-aware planning.</p>
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        <Card className="p-3 lg:col-span-1">
-          <button className="w-full rounded-lg border px-3 py-2 mb-3" onClick={createChat}>+ New Chat</button>
-          <div className="space-y-2 max-h-[520px] overflow-y-auto">
+        <Card className="p-3 lg:col-span-1 rounded-xl">
+          <button className="w-full rounded-lg border px-3 py-2 mb-3 inline-flex items-center justify-center gap-2 hover:bg-gray-50" onClick={createChat}>
+            <MessageSquarePlus className="h-4 w-4" />
+            New Chat
+          </button>
+          <div className="space-y-2 max-h-[560px] overflow-y-auto pr-1">
             {chats.map((chat) => (
-              <div key={chat.id} className={`rounded-lg border p-2 ${chat.id === activeChatId ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'}`}>
-                <button className="w-full text-left" onClick={() => setActiveChatId(chat.id)}>
-                  <p className="font-medium text-sm">{chat.title}</p>
-                  <p className="text-xs text-gray-500">{chat.lastMessagePreview || 'No messages'}</p>
+              <div key={chat.id} className={`rounded-lg border p-2 transition ${chat.id === activeChatId ? 'border-indigo-400 bg-indigo-50/70' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
+                <button className="w-full text-left space-y-1" onClick={() => setActiveChatId(chat.id)}>
+                  <p className="font-medium text-sm truncate">{chat.title}</p>
+                  <p className="text-xs text-gray-500 line-clamp-2">{chat.lastMessagePreview || 'No messages yet'}</p>
                 </button>
-                {chat.id === activeChatId && <button className="mt-2 text-xs rounded border px-2 py-1 text-red-700" onClick={() => deleteChat(chat.id)}>Delete</button>}
+                {chat.id === activeChatId && (
+                  <button className="mt-2 text-xs rounded border px-2 py-1 text-red-700 inline-flex items-center gap-1 hover:bg-red-50" onClick={() => deleteChat(chat.id)}>
+                    <Trash2 className="h-3 w-3" />
+                    Delete
+                  </button>
+                )}
               </div>
             ))}
           </div>
         </Card>
-        <Card className="p-0 overflow-hidden lg:col-span-3">
-          <div className="h-[520px] overflow-y-auto p-4 space-y-3 bg-white">
-            {!activeChat && <p className="text-sm text-gray-500">Create a chat to start.</p>}
+        <Card className="p-0 overflow-hidden lg:col-span-3 rounded-xl">
+          <div className="h-[560px] overflow-y-auto p-5 space-y-4 bg-gradient-soft">
+            {!activeChat && (
+              <div className="h-full flex flex-col items-center justify-center text-center gap-4">
+                <div className="h-12 w-12 rounded-full bg-gradient-primary text-white grid place-items-center shadow-elevated">
+                  <Bot className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="font-semibold text-lg">Where should we begin?</p>
+                  <p className="text-sm text-gray-500">I am Nexa. I can plan your study day, prioritize deadlines, and break big tasks into easy steps.</p>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {starterPrompts.map((prompt) => (
+                    <button
+                      key={prompt}
+                      className="rounded-full border px-3 py-1.5 text-xs hover:bg-white"
+                      onClick={() => useStarterPrompt(prompt)}
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {messages.map((msg) => (
-              <div key={msg.id} className={msg.role === 'assistant' ? 'mr-10' : 'ml-10'}>
-                <div className={`rounded-xl px-3 py-2 text-sm ${msg.role === 'assistant' ? 'bg-gray-100' : 'bg-indigo-600 text-white'}`}>{msg.content}</div>
+              <div key={msg.id} className={`flex ${msg.role === 'assistant' ? 'justify-start' : 'justify-end'}`}>
+                <div className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
+                  msg.role === 'assistant'
+                    ? 'bg-white border border-gray-200 text-gray-800'
+                    : 'text-white bg-gradient-primary'
+                }`}>
+                  <div className="mb-1 flex items-center gap-1.5 text-[11px] opacity-80">
+                    {msg.role === 'assistant' ? <Bot className="h-3.5 w-3.5" /> : <User2 className="h-3.5 w-3.5" />}
+                    <span>{msg.role === 'assistant' ? 'Nexa' : 'You'}</span>
+                  </div>
+                  <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                </div>
               </div>
             ))}
             {loading && <p className="text-sm text-gray-500">Thinking...</p>}
           </div>
-          <form onSubmit={sendMessage} className="border-t p-3 flex gap-2">
-            <input className="flex-1 rounded-lg border px-3 py-2" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask for a study plan..." />
-            <button className="btn-primary bg-gradient-primary" type="submit" disabled={loading}>Send</button>
+          <form onSubmit={sendMessage} className="border-t bg-white p-3">
+            {error && <p className="mb-2 text-xs text-red-600">{error}</p>}
+            <div className="flex gap-2">
+              <input
+                className="flex-1 rounded-xl border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask Nexa for a study plan..."
+              />
+              <button className="btn-primary bg-gradient-primary inline-flex items-center gap-2 disabled:opacity-60" type="submit" disabled={loading || !input.trim()}>
+                <Send className="h-4 w-4" />
+                Send
+              </button>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {starterPrompts.map((prompt) => (
+                <button
+                  type="button"
+                  key={prompt}
+                  className="rounded-full border px-3 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                  onClick={() => useStarterPrompt(prompt)}
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
           </form>
         </Card>
       </div>
     </div>
   )
 }
-

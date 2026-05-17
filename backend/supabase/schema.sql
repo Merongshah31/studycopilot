@@ -61,12 +61,19 @@ create table if not exists public.assistant_messages (
 
 create index if not exists assistant_messages_chat_id_created_at_idx on public.assistant_messages(chat_id, created_at);
 
+create table if not exists public.assistant_memories (
+  user_id uuid primary key references public.users(id) on delete cascade,
+  memory_json jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
 -- Optional RLS (recommended if you later use anon/authenticated direct client access)
 alter table public.users enable row level security;
 alter table public.tasks enable row level security;
 alter table public.google_calendar_tokens enable row level security;
 alter table public.assistant_chats enable row level security;
 alter table public.assistant_messages enable row level security;
+alter table public.assistant_memories enable row level security;
 
 -- Service-role backend can bypass RLS; these are for authenticated users if needed later.
 do $$
@@ -75,6 +82,18 @@ begin
     select 1 from pg_policies where schemaname='public' and tablename='tasks' and policyname='tasks_owner_access'
   ) then
     create policy tasks_owner_access on public.tasks
+      for all
+      using (auth.uid() = user_id)
+      with check (auth.uid() = user_id);
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='assistant_memories' and policyname='assistant_memories_owner_access'
+  ) then
+    create policy assistant_memories_owner_access on public.assistant_memories
       for all
       using (auth.uid() = user_id)
       with check (auth.uid() = user_id);

@@ -2,12 +2,148 @@ const express = require('express')
 const { v4: uuidv4 } = require('uuid')
 const authMiddleware = require('../middleware/auth')
 const { getSupabaseServerClient } = require('../supabase')
+const {
+  checkUserInputSafety,
+  refusalMessage,
+  fallbackStudySupport,
+  postProcessAssistantText,
+  buildSystemGuardrailAppendix,
+} = require('../assistantGuardrails')
 
 const router = express.Router()
 router.use(authMiddleware)
 
 function nowIso() {
   return new Date().toISOString()
+}
+
+const DEFAULT_MEMORY = {
+  preferredName: '',
+  relationshipStyle: 'supportive',
+  communicationStyle: 'clear-actionable',
+  studyPreferences: {
+    bestStudyTime: '',
+    focusMethod: 'pomodoro',
+    difficultyHandling: 'step-by-step',
+  },
+  goals: {
+    shortTerm: [],
+    longTerm: [],
+  },
+  notes: [],
+}
+
+function cloneDefaultMemory() {
+  return JSON.parse(JSON.stringify(DEFAULT_MEMORY))
+}
+
+function normalizeMemory(raw) {
+  const base = cloneDefaultMemory()
+  if (!raw || typeof raw !== 'object') return base
+  return {
+    ...base,
+    ...raw,
+    studyPreferences: { ...base.studyPreferences, ...(raw.studyPreferences || {}) },
+    goals: {
+      shortTerm: Array.isArray(raw?.goals?.shortTerm) ? raw.goals.shortTerm.slice(0, 8) : [],
+      longTerm: Array.isArray(raw?.goals?.longTerm) ? raw.goals.longTerm.slice(0, 8) : [],
+    },
+    notes: Array.isArray(raw.notes) ? raw.notes.slice(0, 20) : [],
+  }
+}
+
+async function getUserMemory(supabase, userId) {
+  try {
+    const { data, error } = await supabase.from('assistant_memories').select('*').eq('user_id', userId).maybeSingle()
+    if (error) throw error
+    return { memory: normalizeMemory(data?.memory_json), available: true }
+  } catch {
+    return { memory: cloneDefaultMemory(), available: false }
+  }
+}
+
+async function saveUserMemory(supabase, userId, memory) {
+  const payload = {
+    user_id: userId,
+    memory_json: normalizeMemory(memory),
+    updated_at: nowIso(),
+  }
+  try {
+    await supabase.from('assistant_memories').upsert(payload)
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function loadUserContext(supabase, userId) {
+  const [{ data: user }, { data: tasks }] = await Promise.all([
+    supabase.from('users').select('id,name,email,course,subjects').eq('id', userId).maybeSingle(),
+    supabase.from('tasks').select('id,title,priority,deadline,completed').eq('user_id', userId).order('created_at', { ascending: false }).limit(30),
+  ])
+  const list = Array.isArray(tasks) ? tasks : []
+  const open = list.filter((t) => !t.completed)
+  return {
+    user: user || {},
+    taskStats: {
+      total: list.length,
+      open: open.length,
+      highPriorityOpen: open.filter((t) => t.priority === 'high').length,
+      dueSoon: open.filter((t) => {
+        if (!t.deadline) return false
+        const days = Math.ceil((new Date(t.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        return days >= 0 && days <= 3
+      }).length,
+    },
+    topOpenTasks: open.slice(0, 5).map((t) => ({ title: t.title, priority: t.priority, deadline: t.deadline })),
+  }
+}
+
+function buildNexaSystemMessage(memory, context) {
+  const profileName = memory.preferredName || context?.user?.name || 'Student'
+  return {
+    role: 'system',
+    content: [
+      'You are Nexa, StudyPilot AI Student Life Copilot.',
+      'Core identity: supportive, calm, actionable, and concise.',
+      'Guardrails: never shame user, do not fabricate facts/deadlines, mention uncertainty when needed, ask at most one short clarifying question when context is missing.',
+      'Response style: brief summary then practical next steps.',
+      `Address user as: ${profileName}.`,
+      `Memory profile: ${JSON.stringify(memory)}`,
+      `Live context: ${JSON.stringify(context)}`,
+      buildSystemGuardrailAppendix(),
+    ].join('\n'),
+  }
+}
+
+function updateMemoryFromUserText(memory, text) {
+  const next = normalizeMemory(memory)
+  const content = String(text || '').trim()
+  if (!content) return next
+
+  const lower = content.toLowerCase()
+  const nameMatch = content.match(/call me\s+([a-zA-Z][a-zA-Z0-9_-]{1,30})/i)
+  if (nameMatch) next.preferredName = nameMatch[1]
+
+  if (lower.includes('morning')) next.studyPreferences.bestStudyTime = 'morning'
+  if (lower.includes('afternoon')) next.studyPreferences.bestStudyTime = 'afternoon'
+  if (lower.includes('night') || lower.includes('evening')) next.studyPreferences.bestStudyTime = 'night'
+
+  if (lower.includes('pomodoro')) next.studyPreferences.focusMethod = 'pomodoro'
+  if (lower.includes('deep work')) next.studyPreferences.focusMethod = 'deep-work'
+
+  if (lower.includes('step by step') || lower.includes('step-by-step')) next.studyPreferences.difficultyHandling = 'step-by-step'
+  if (lower.includes('quick answer')) next.studyPreferences.difficultyHandling = 'quick-answer'
+
+  if ((lower.startsWith('my goal is') || lower.startsWith('goal:')) && next.goals.shortTerm.length < 8) {
+    next.goals.shortTerm.push(content.slice(0, 120))
+  }
+
+  if ((lower.includes('i feel stressed') || lower.includes('deadline panic')) && next.notes.length < 20) {
+    next.notes.push('User reported stress around deadlines.')
+  }
+
+  return next
 }
 
 function extractText(data) {
@@ -145,6 +281,7 @@ router.post('/chats/:chatId/respond', async (req, res) => {
   if (!supabase) return res.status(500).json({ message: 'Supabase is not configured on backend' })
   const content = String(req.body?.content || '').trim()
   if (!content) return res.status(400).json({ message: 'content required' })
+  const safety = checkUserInputSafety(content)
   const { data: chat, error: chatError } = await supabase.from('assistant_chats').select('*').eq('id', req.params.chatId).eq('user_id', req.user.id).maybeSingle()
   if (chatError) return res.status(500).json({ message: `Failed to load chat: ${chatError.message}` })
   if (!chat) return res.status(404).json({ message: 'Chat not found' })
@@ -161,7 +298,22 @@ router.post('/chats/:chatId/respond', async (req, res) => {
   if (historyError) return res.status(500).json({ message: `Failed to load chat history: ${historyError.message}` })
   const history = (historyRows || []).map((m) => ({ role: m.role, content: m.content }))
 
-  const answer = await aiReply(history)
+  const [{ memory, available: memoryAvailable }, context] = await Promise.all([
+    getUserMemory(supabase, req.user.id),
+    loadUserContext(supabase, req.user.id),
+  ])
+  const updatedMemory = updateMemoryFromUserText(memory, content)
+  if (memoryAvailable) await saveUserMemory(supabase, req.user.id, updatedMemory)
+
+  const modelInput = [buildNexaSystemMessage(updatedMemory, context), ...history]
+
+  let answer = ''
+  if (safety.action === 'block') {
+    answer = `${refusalMessage()}\n\n${fallbackStudySupport(content)}`
+  } else {
+    answer = await aiReply(modelInput)
+    answer = postProcessAssistantText(answer, { mode: safety.action === 'review' ? 'review' : 'allow' })
+  }
   const assistantMessage = { id: uuidv4(), chat_id: chat.id, role: 'assistant', content: answer, created_at: nowIso() }
   const { error: aiMsgError } = await supabase.from('assistant_messages').insert(assistantMessage)
   if (aiMsgError) return res.status(500).json({ message: `Failed to save assistant response: ${aiMsgError.message}` })
@@ -178,6 +330,23 @@ router.post('/chats/:chatId/respond', async (req, res) => {
     assistantMessage: { id: assistantMessage.id, chatId: assistantMessage.chat_id, role: assistantMessage.role, content: assistantMessage.content, createdAt: assistantMessage.created_at },
     chat: { id: chat.id, userId: chat.user_id, title: updatedTitle, createdAt: chat.created_at, updatedAt },
   })
+})
+
+router.get('/memory', async (req, res) => {
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return res.status(500).json({ message: 'Supabase is not configured on backend' })
+  const { memory, available } = await getUserMemory(supabase, req.user.id)
+  res.json({ memory, persisted: available })
+})
+
+router.patch('/memory', async (req, res) => {
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return res.status(500).json({ message: 'Supabase is not configured on backend' })
+  const { memory, available } = await getUserMemory(supabase, req.user.id)
+  if (!available) return res.status(409).json({ message: 'assistant_memories table is not ready yet' })
+  const merged = normalizeMemory({ ...memory, ...(req.body || {}) })
+  await saveUserMemory(supabase, req.user.id, merged)
+  res.json({ memory: merged, persisted: true })
 })
 
 module.exports = router
