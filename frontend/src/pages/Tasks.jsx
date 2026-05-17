@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Card from '../components/Card'
+import Skeleton from '../components/Skeleton'
 import { apiFetch } from '../lib/api'
 
 const PRIORITY_ORDER = { high: 3, medium: 2, low: 1 }
@@ -24,10 +25,13 @@ export default function Tasks() {
   const [priorityFilter, setPriorityFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('open')
   const [sortBy, setSortBy] = useState('priority_due')
+  const [loading, setLoading] = useState(true)
 
   async function load() {
+    setLoading(true)
     const data = await apiFetch('/tasks')
     setTasks(Array.isArray(data) ? data : [])
+    setLoading(false)
   }
 
   useEffect(() => { load().catch(() => setTasks([])) }, [])
@@ -159,6 +163,14 @@ export default function Tasks() {
       </Card>
 
       <ul className="space-y-2">
+        {loading && Array.from({ length: 4 }).map((_, idx) => (
+          <li key={`sk-${idx}`} className="rounded-lg border p-3">
+            <Skeleton className="h-4 w-52 mb-2" />
+            <Skeleton className="h-3 w-24" />
+          </li>
+        ))}
+        {!loading && (
+        <>
         {visibleTasks.map((task) => (
           <li key={task.id} className="rounded-lg border p-3 flex items-center justify-between">
             <div>
@@ -178,6 +190,8 @@ export default function Tasks() {
         ))}
         {visibleTasks.length === 0 && (
           <li className="rounded-lg border p-4 text-sm text-gray-500">No tasks match current filters.</li>
+        )}
+        </>
         )}
       </ul>
     </div>

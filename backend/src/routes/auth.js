@@ -39,6 +39,19 @@ async function getUserById(supabase, id) {
   return mapUserRow(data)
 }
 
+router.get('/check-email', async (req, res) => {
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return res.status(500).json({ message: 'Supabase is not configured on backend' })
+  const email = String(req.query?.email || '').trim().toLowerCase()
+  if (!email) return res.status(400).json({ message: 'email query is required' })
+  try {
+    const existing = await getUserByEmail(supabase, email)
+    return res.json({ exists: !!existing })
+  } catch (error) {
+    return res.status(500).json({ message: `Failed to check email: ${error.message}` })
+  }
+})
+
 router.post('/register', async (req, res) => {
   const supabase = getSupabaseServerClient()
   if (!supabase) return res.status(500).json({ message: 'Supabase is not configured on backend' })

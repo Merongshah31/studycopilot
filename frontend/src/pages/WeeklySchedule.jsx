@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import Card from '../components/Card'
+import Skeleton from '../components/Skeleton'
 import { apiFetch } from '../lib/api'
 import { pushDebugEvent } from '../lib/debug'
 
@@ -39,6 +40,7 @@ export default function WeeklySchedule() {
   const [dropDay, setDropDay] = useState('')
   const [editing, setEditing] = useState(false)
   const [savingEdit, setSavingEdit] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [editForm, setEditForm] = useState({
     title: '',
     deadline: '',
@@ -47,14 +49,16 @@ export default function WeeklySchedule() {
   })
 
   useEffect(() => {
-    apiFetch('/tasks').then((data) => setTasks(Array.isArray(data) ? data : [])).catch(() => setTasks([]))
+    setLoading(true)
+    apiFetch('/tasks').then((data) => setTasks(Array.isArray(data) ? data : [])).catch(() => setTasks([])).finally(() => setLoading(false))
   }, [])
 
   useEffect(() => {
     const onAgentEvents = (event) => {
       const events = Array.isArray(event?.detail?.events) ? event.detail.events : []
       if (events.includes('TASKS_UPDATED')) {
-        apiFetch('/tasks').then((data) => setTasks(Array.isArray(data) ? data : [])).catch(() => setTasks([]))
+        setLoading(true)
+        apiFetch('/tasks').then((data) => setTasks(Array.isArray(data) ? data : [])).catch(() => setTasks([])).finally(() => setLoading(false))
       }
     }
     window.addEventListener('studypilot:agent-ui-events', onAgentEvents)
@@ -223,6 +227,29 @@ export default function WeeklySchedule() {
         </div>
       </div>
       {agentMessage && <div className="rounded-lg border bg-white px-3 py-2 text-sm">{agentMessage}</div>}
+      {loading && (
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <Card className="p-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {Array.from({ length: 7 }).map((_, idx) => (
+                <div key={idx} className="rounded-xl border p-2">
+                  <Skeleton className="h-4 w-10 mb-2" />
+                  <Skeleton className="h-3 w-16 mb-3" />
+                  <Skeleton className="h-14 w-full mb-2" />
+                  <Skeleton className="h-14 w-full" />
+                </div>
+              ))}
+            </div>
+          </Card>
+          <Card className="p-4">
+            <Skeleton className="h-5 w-24 mb-3" />
+            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="h-4 w-5/6 mb-2" />
+            <Skeleton className="h-4 w-4/6" />
+          </Card>
+        </div>
+      )}
+      {!loading && (
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="overflow-x-auto rounded-xl border bg-white p-3">
           <div className="grid min-w-[840px] lg:min-w-[980px] grid-cols-7 gap-3">
@@ -413,6 +440,7 @@ export default function WeeklySchedule() {
           )}
         </Card>
       </div>
+      )}
     </div>
   )
 }

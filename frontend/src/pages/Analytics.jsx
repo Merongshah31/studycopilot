@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import Card from '../components/Card'
+import Skeleton from '../components/Skeleton'
 import { apiFetch } from '../lib/api'
 
 function HorizontalBar({ label, value, max, color }) {
@@ -23,9 +24,12 @@ function Pill({ label, tone }) {
 
 export default function Analytics() {
   const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
   async function loadAnalytics() {
+    setLoading(true)
     const d = await apiFetch('/analytics/overview')
     setData(d)
+    setLoading(false)
   }
   useEffect(() => { loadAnalytics().catch(() => {}) }, [])
   useEffect(() => {
@@ -50,6 +54,19 @@ export default function Analytics() {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Analytics</h2>
+      {loading && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            {['1', '2', '3', '4'].map((k) => <Card key={k} className="p-4"><Skeleton className="h-4 w-24 mb-3" /><Skeleton className="h-8 w-20" /></Card>)}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card className="p-4"><Skeleton className="h-5 w-40 mb-3" /><Skeleton className="h-3 w-full mb-2" /><Skeleton className="h-3 w-5/6 mb-2" /><Skeleton className="h-3 w-4/6" /></Card>
+            <Card className="p-4"><Skeleton className="h-5 w-28 mb-3" /><Skeleton className="h-3 w-full mb-2" /><Skeleton className="h-3 w-5/6 mb-2" /><Skeleton className="h-3 w-4/6" /></Card>
+          </div>
+        </>
+      )}
+      {!loading && (
+      <>
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card className="p-4"><p className="text-sm text-gray-500">Completed Tasks</p><p className="text-2xl font-semibold">{data?.totals?.completedTasks ?? 0}</p></Card>
         <Card className="p-4"><p className="text-sm text-gray-500">Completion Rate</p><p className="text-2xl font-semibold">{data?.totals?.completionRate ?? 0}%</p></Card>
@@ -128,6 +145,8 @@ export default function Analytics() {
           {(data?.insights?.recommendations || []).map((line, idx) => <li key={idx}>{line}</li>)}
         </ul>
       </Card>
+      </>
+      )}
     </div>
   )
 }

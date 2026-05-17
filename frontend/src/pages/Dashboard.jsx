@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Card from '../components/Card'
+import Skeleton from '../components/Skeleton'
 import { apiFetch } from '../lib/api'
 
 function Stat({ title, value }) {
@@ -15,8 +16,10 @@ export default function Dashboard() {
   const [tasks, setTasks] = useState([])
   const [analytics, setAnalytics] = useState(null)
   const [suggestions, setSuggestions] = useState([])
+  const [loading, setLoading] = useState(true)
 
   async function loadDashboard() {
+    setLoading(true)
     const [t, a, s] = await Promise.all([
       apiFetch('/tasks').catch(() => []),
       apiFetch('/analytics/overview').catch(() => null),
@@ -25,6 +28,7 @@ export default function Dashboard() {
     setTasks(Array.isArray(t) ? t : [])
     setAnalytics(a)
     setSuggestions(Array.isArray(s?.suggestions) ? s.suggestions : [])
+    setLoading(false)
   }
 
   useEffect(() => {
@@ -46,6 +50,21 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {loading && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card className="p-4"><Skeleton className="h-4 w-24 mb-3" /><Skeleton className="h-8 w-16" /></Card>
+            <Card className="p-4"><Skeleton className="h-4 w-28 mb-3" /><Skeleton className="h-8 w-16" /></Card>
+            <Card className="p-4"><Skeleton className="h-4 w-24 mb-3" /><Skeleton className="h-8 w-20" /></Card>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card><Skeleton className="h-5 w-40 mb-4" /><Skeleton className="h-16 w-full mb-2" /><Skeleton className="h-16 w-full" /></Card>
+            <Card><Skeleton className="h-5 w-28 mb-4" /><Skeleton className="h-4 w-full mb-2" /><Skeleton className="h-4 w-5/6 mb-2" /><Skeleton className="h-4 w-4/6" /></Card>
+          </div>
+        </>
+      )}
+      {!loading && (
+      <>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Stat title="Today's tasks" value={tasks.filter((t) => !t.completed).length} />
         <Stat title="Completed tasks" value={analytics?.totals?.completedTasks ?? 0} />
@@ -66,6 +85,8 @@ export default function Dashboard() {
           </ul>
         </Card>
       </div>
+      </>
+      )}
     </div>
   )
 }

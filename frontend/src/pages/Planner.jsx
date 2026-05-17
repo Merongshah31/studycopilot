@@ -1,13 +1,17 @@
 import React, { useEffect, useState } from 'react'
 import Card from '../components/Card'
+import Skeleton from '../components/Skeleton'
 import { apiFetch } from '../lib/api'
 
 export default function Planner() {
   const [timeline, setTimeline] = useState({ morning: [], afternoon: [], night: [] })
+  const [loading, setLoading] = useState(true)
 
   async function loadPlanner() {
+    setLoading(true)
     const data = await apiFetch('/planner/daily')
     setTimeline(data?.timeline || { morning: [], afternoon: [], night: [] })
+    setLoading(false)
   }
 
   useEffect(() => {
@@ -28,6 +32,18 @@ export default function Planner() {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">AI Daily Planner</h2>
+      {loading && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {['a', 'b', 'c'].map((k) => (
+            <Card key={k} className="p-4">
+              <Skeleton className="h-5 w-24 mb-3" />
+              <Skeleton className="h-16 w-full mb-2" />
+              <Skeleton className="h-16 w-full" />
+            </Card>
+          ))}
+        </div>
+      )}
+      {!loading && (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {['morning', 'afternoon', 'night'].map((slot) => (
           <Card key={slot} className="p-4">
@@ -44,6 +60,7 @@ export default function Planner() {
           </Card>
         ))}
       </div>
+      )}
     </div>
   )
 }

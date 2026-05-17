@@ -1,6 +1,15 @@
 import React, { useState } from 'react'
 import { login, loginAsGuest, register } from '../lib/authClient'
 import { signInWithGoogle } from '../lib/supabaseClient'
+import { apiFetch } from '../lib/api'
+
+const MAX_EMAIL_LENGTH = 254
+const VALID_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+const VALID_DOMAIN_RE = /^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+$/
+
+function Rule({ ok, text }) {
+  return <p className={`text-xs ${ok ? 'text-emerald-700' : 'text-gray-500'}`}>{ok ? '✓' : '✗'} {text}</p>
+}
 
 export default function Auth() {
   const [mode, setMode] = useState('login')
@@ -11,14 +20,54 @@ export default function Auth() {
   const [subjects, setSubjects] = useState('')
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
+  const [checkingEmail, setCheckingEmail] = useState(false)
+  const [emailExists, setEmailExists] = useState(false)
+
+  const emailTrim = email.trim()
+  const hasAt = emailTrim.includes('@')
+  const hasNoSpaces = !/\s/.test(emailTrim)
+  const maxLenOk = emailTrim.length <= MAX_EMAIL_LENGTH
+  const domainPart = hasAt ? emailTrim.split('@')[1] || '' : ''
+  const domainOk = VALID_DOMAIN_RE.test(domainPart)
+  const emailFormatOk = VALID_EMAIL_RE.test(emailTrim)
+  const emailRulesOk = hasAt && hasNoSpaces && maxLenOk && domainOk && emailFormatOk
+
+  const passLen = password.length >= 8
+  const passUpper = /[A-Z]/.test(password)
+  const passNum = /\d/.test(password)
+  const passSpecial = /[^A-Za-z0-9]/.test(password)
+  const passRulesOk = passLen && passUpper && passNum && passSpecial
+
+  async function checkEmailExists(nextEmail) {
+    const candidate = String(nextEmail || '').trim().toLowerCase()
+    if (!candidate || !VALID_EMAIL_RE.test(candidate)) {
+      setEmailExists(false)
+      return
+    }
+    setCheckingEmail(true)
+    try {
+      const data = await apiFetch(`/auth/check-email?email=${encodeURIComponent(candidate)}`)
+      setEmailExists(!!data?.exists)
+    } catch {
+      setEmailExists(false)
+    } finally {
+      setCheckingEmail(false)
+    }
+  }
 
   async function submit(e) {
     e.preventDefault()
+    const normalizedEmail = emailTrim.toLowerCase()
+    if (mode === 'register') {
+      if (!emailRulesOk) return setErr('Please fix email requirements before continuing.')
+      if (emailExists) return setErr('Email already registered.')
+      if (!passRulesOk) return setErr('Password does not meet policy requirements.')
+    }
     setErr('')
     setLoading(true)
     try {
-      if (mode === 'login') await login({ email, password })
-      else await register({ name, email, password, course, subjects: subjects.split(',').map((x) => x.trim()).filter(Boolean) })
+      if (mode === 'login') await login({ email: normalizedEmail, password })
+      else await register({ name, email: normalizedEmail, password, course, subjects: subjects.split(',').map((x) => x.trim()).filter(Boolean) })
       window.location.hash = '#/dashboard'
     } catch (error) {
       setErr(error.message || 'Authentication failed')
@@ -39,8 +88,39 @@ export default function Auth() {
               <input className="w-full p-2 rounded-md border" placeholder="Subjects (comma separated)" value={subjects} onChange={(e) => setSubjects(e.target.value)} />
             </>
           )}
-          <input className="w-full p-2 rounded-md border" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <input
+            className="w-full p-2 rounded-md border"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => {
+              const next = e.target.value
+              setEmail(next)
+              if (mode === 'register') checkEmailExists(next)
+            }}
+            required
+          />
+          {mode === 'register' && (
+            <div className="rounded-lg border bg-gray-50 p-3 space-y-1">
+              <p className="text-xs font-medium text-gray-700">Email requirements:</p>
+              <Rule ok={hasAt} text="Must contain @ symbol" />
+              <Rule ok={domainOk} text="Must contain a valid domain (example.com)" />
+              <Rule ok={hasNoSpaces} text="No spaces allowed" />
+              <Rule ok={emailFormatOk} text="Must be in valid email format" />
+              <Rule ok={maxLenOk} text="Maximum 254 characters" />
+              <Rule ok={!emailExists && emailTrim.length > 0} text="Email not already registered" />
+              {checkingEmail && <p className="text-xs text-gray-500">Checking email availability...</p>}
+            </div>
+          )}
           <input className="w-full p-2 rounded-md border" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          {mode === 'register' && (
+            <div className="rounded-lg border bg-gray-50 p-3 space-y-1">
+              <p className="text-xs font-medium text-gray-700">Password must contain:</p>
+              <Rule ok={passLen} text="At least 8 characters" />
+              <Rule ok={passUpper} text="One uppercase letter" />
+              <Rule ok={passNum} text="One number" />
+              <Rule ok={passSpecial} text="One special character" />
+            </div>
+          )}
           <button className="btn-primary bg-gradient-primary w-full" disabled={loading} type="submit">{loading ? 'Please wait...' : mode === 'login' ? 'Sign in' : 'Create account'}</button>
           <button type="button" className="w-full rounded-lg border px-4 py-2 text-sm" onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
             {mode === 'login' ? 'Need an account?' : 'Have an account?'}

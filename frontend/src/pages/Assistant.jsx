@@ -3,6 +3,8 @@ import { Bot, MessageSquarePlus, Send, Trash2, User2 } from 'lucide-react'
 import Card from '../components/Card'
 import { apiFetch } from '../lib/api'
 
+const CHAT_USAGE_LIMIT = 100
+
 export default function Assistant() {
   const [chats, setChats] = useState([])
   const [activeChatId, setActiveChatId] = useState('')
@@ -13,6 +15,9 @@ export default function Assistant() {
   const [agentMode, setAgentMode] = useState(true)
 
   const activeChat = useMemo(() => chats.find((chat) => chat.id === activeChatId), [chats, activeChatId])
+  const chatUsed = Math.min(messages.length, CHAT_USAGE_LIMIT)
+  const usagePercent = Math.round((chatUsed / CHAT_USAGE_LIMIT) * 100)
+  const usageColor = usagePercent >= 90 ? '#dc2626' : usagePercent >= 70 ? '#d97706' : '#4f46e5'
 
   async function loadChats() {
     const rows = await apiFetch('/assistant/chats')
@@ -138,7 +143,7 @@ export default function Assistant() {
       <div>
         <h2 className="text-xl font-semibold">Nexa Assistant</h2>
         <p className="text-sm text-gray-500">Your calm study copilot with memory-aware planning.</p>
-        <div className="mt-2">
+        <div className="mt-3 flex items-center justify-between gap-4 flex-wrap">
           <button
             type="button"
             className={`rounded-full border px-3 py-1 text-xs ${agentMode ? 'bg-indigo-600 text-white border-indigo-600' : 'text-gray-700'}`}
@@ -146,6 +151,25 @@ export default function Assistant() {
           >
             {agentMode ? 'Agent Mode: ON' : 'Agent Mode: OFF'}
           </button>
+          <div className="flex items-center gap-3 rounded-lg border bg-white px-3 py-2">
+            <svg width="42" height="42" viewBox="0 0 42 42" className="-rotate-90">
+              <circle cx="21" cy="21" r="16" fill="none" stroke="#e5e7eb" strokeWidth="4" />
+              <circle
+                cx="21"
+                cy="21"
+                r="16"
+                fill="none"
+                stroke={usageColor}
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeDasharray={`${(usagePercent / 100) * 100.53} 100.53`}
+              />
+            </svg>
+            <div>
+              <p className="text-[11px] text-gray-500">Chat usage</p>
+              <p className="text-sm font-semibold">{chatUsed}/{CHAT_USAGE_LIMIT}</p>
+            </div>
+          </div>
         </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
