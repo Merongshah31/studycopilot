@@ -73,6 +73,15 @@ export default function Assistant() {
     'Plan my study session for today',
     'Prioritize my deadlines this week',
     'Break down my hardest task into steps',
+    'Add task "Revise chapter 5" by 2026-05-20 priority high',
+    'Complete task "Revise chapter 5"',
+    'Reschedule task "Prepare slides" to 2026-05-22',
+    'Set priority for task "Physics lab report" to high',
+    'Tambah tugas "Ulang kaji Bab 5" pada 2026-05-20 keutamaan tinggi',
+    'Siap tugas "Ulang kaji Bab 5"',
+    'Jadual semula tugas "Sediakan slaid" ke 2026-05-22',
+    'Tetapkan keutamaan untuk tugas "Laporan makmal fizik" kepada tinggi',
+    'Cipta acara kalendar "Ulang kaji Matematik" pada 2026-05-20 jam 8 pm',
   ]
 
   async function useStarterPrompt(prompt) {

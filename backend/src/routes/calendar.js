@@ -2,7 +2,7 @@ const express = require('express')
 const jwt = require('jsonwebtoken')
 const authMiddleware = require('../middleware/auth')
 const { getSupabaseServerClient } = require('../supabase')
-const { buildOAuthUrl, exchangeCode, listEvents } = require('../googleCalendar')
+const { buildOAuthUrl, exchangeCode, listEvents, createEvent } = require('../googleCalendar')
 
 const router = express.Router()
 
@@ -152,6 +152,31 @@ router.get('/events', async (req, res) => {
     res.json(events.map(normalizeEvent))
   } catch (error) {
     res.status(500).json({ message: `Failed to load Google Calendar events: ${error.message}` })
+  }
+})
+
+router.post('/events', async (req, res) => {
+  try {
+    const tokens = await getStoredTokens(req.user.id)
+    if (!tokens) return res.status(409).json({ message: 'Google Calendar is not connected' })
+    const title = String(req.body?.title || '').trim()
+    const start = String(req.body?.start || '').trim()
+    const end = String(req.body?.end || '').trim()
+    const location = String(req.body?.location || '').trim()
+    const description = String(req.body?.description || '').trim()
+    if (!title || !start || !end) {
+      return res.status(400).json({ message: 'title, start, and end are required' })
+    }
+    const event = await createEvent(tokens, {
+      summary: title,
+      description: description || undefined,
+      location: location || undefined,
+      start: { dateTime: start },
+      end: { dateTime: end },
+    })
+    res.status(201).json(normalizeEvent(event))
+  } catch (error) {
+    res.status(500).json({ message: `Failed to create Google Calendar event: ${error.message}` })
   }
 })
 

@@ -13,7 +13,7 @@ function buildOAuthUrl(state) {
   return client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
-    scope: ['https://www.googleapis.com/auth/calendar.readonly'],
+    scope: ['https://www.googleapis.com/auth/calendar'],
     state,
   })
 }
@@ -44,8 +44,19 @@ async function listEvents(tokens, timeMin, timeMax) {
   return result.data.items || []
 }
 
+async function createEvent(tokens, payload) {
+  const auth = createAuthenticatedClient(tokens)
+  const calendar = google.calendar({ version: 'v3', auth })
+  const result = await calendar.events.insert({
+    calendarId: 'primary',
+    requestBody: payload,
+  })
+  return result.data
+}
+
 module.exports = {
   buildOAuthUrl,
   exchangeCode,
   listEvents,
+  createEvent,
 }
