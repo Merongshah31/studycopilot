@@ -42,6 +42,16 @@ const sections = [
       'Adjust task scope early when workload becomes heavy.',
     ],
   },
+  {
+    title: '6. Install on phone (PWA)',
+    points: [
+      'Open StudyPilot in Chrome (Android) or Safari (iPhone).',
+      'Android: tap browser menu (three dots) and choose "Add to Home screen" or "Install app".',
+      'iPhone: tap Share button, then choose "Add to Home Screen".',
+      'After install, open StudyPilot from your home screen like a normal app.',
+      'If install option does not appear, refresh the page and make sure you are on the production HTTPS URL.',
+    ],
+  },
 ]
 
 export default function Guidelines() {
