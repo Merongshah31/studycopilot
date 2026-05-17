@@ -28,6 +28,7 @@ app.use((err, req, res, next) => {
   return next(err)
 })
 
+app.get('/', (req, res) => res.json({ message: 'StudyCopilot API', status: 'running' }))
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }))
 app.use('/api/auth', authRouter)
 app.use('/api/tasks', tasksRouter)
