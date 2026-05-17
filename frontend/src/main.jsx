@@ -21,7 +21,7 @@ function RouterApp() {
   }, [])
 
   const token = getToken()
-  const protectedRoutes = ['/dashboard', '/tasks', '/planner', '/analytics', '/assistant', '/schedule-import', '/weekly-schedule']
+  const protectedRoutes = ['/dashboard', '/tasks', '/planner', '/analytics', '/assistant', '/schedule-import', '/weekly-schedule', '/profile']
   const requiresAuth = protectedRoutes.some((route) => hash.startsWith(route))
   if (!token && requiresAuth) {
     window.location.hash = '#/auth'
@@ -67,3 +67,9 @@ handleSupabaseAuth(async (session) => {
 })
 
 root.render(<RouterApp />)
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {})
+  })
+}

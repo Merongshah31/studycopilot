@@ -9,6 +9,7 @@ import Analytics from './pages/Analytics'
 import Assistant from './pages/Assistant'
 import ScheduleImport from './pages/ScheduleImport'
 import WeeklySchedule from './pages/WeeklySchedule'
+import ProfileSettings from './pages/ProfileSettings'
 
 export default function App() {
   const hash = window.location.hash.replace('#', '') || '/dashboard'
@@ -21,6 +22,7 @@ export default function App() {
     { test: (v) => v.startsWith('/assistant'), view: Assistant },
     { test: (v) => v.startsWith('/schedule-import'), view: ScheduleImport },
     { test: (v) => v.startsWith('/weekly-schedule'), view: WeeklySchedule },
+    { test: (v) => v.startsWith('/profile'), view: ProfileSettings },
   ]
   const matched = routeMap.find((entry) => entry.test(hash))
   const View = matched ? matched.view : Dashboard
