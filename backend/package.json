@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "build": "echo \"Backend build step complete\"",
     "dev": "nodemon --config nodemon.json",
     "start": "node src/index.js",
+    "railway:start": "node src/index.js",
     "seed:supabase": "node scripts/seed-supabase.js"
   },
   "dependencies": {

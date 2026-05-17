@@ -1,13 +1,8 @@
 const express = require('express')
 const cors = require('cors')
 const dotenv = require('dotenv')
-const fs = require('fs')
-const path = require('path')
 
 dotenv.config()
-
-const dataDir = path.join(__dirname, '..', 'data')
-if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true })
 
 const authRouter = require('./routes/auth')
 const tasksRouter = require('./routes/tasks')
@@ -44,13 +39,16 @@ app.use('/api/calendar', calendarRouter)
 app.use('/api/agent', agentRouter)
 app.use('/api/schedule-import', scheduleImportRouter)
 
-const PORT = process.env.PORT || 5050
-const server = app.listen(PORT, () => console.log(`Backend running on port ${PORT}`))
+module.exports = app
 
-server.on('error', (error) => {
-  if (error.code === 'EADDRINUSE') {
-    console.error(`Port ${PORT} is already in use. Stop the existing backend or change PORT in backend/.env.`)
-    process.exit(1)
-  }
-  throw error
-})
+if (require.main === module) {
+  const PORT = process.env.PORT || 5050
+  const server = app.listen(PORT, () => console.log(`Backend running on port ${PORT}`))
+  server.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is already in use. Stop the existing backend or change PORT in backend/.env.`)
+      process.exit(1)
+    }
+    throw error
+  })
+}
