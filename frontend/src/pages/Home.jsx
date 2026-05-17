@@ -64,7 +64,7 @@ export default function Home() {
                     <Clock3 className="h-4 w-4 text-indigo-600" />
                     Focus Block
                   </div>
-                  <p className="text-sm font-medium">25 min Pomodoro</p>
+                  <p className="text-sm font-medium">25 min Focus Session</p>
                 </div>
                 <div className="rounded-xl bg-white border border-indigo-100 p-3 flex items-center justify-between">
                   <div className="inline-flex items-center gap-2 text-sm">
@@ -89,7 +89,7 @@ export default function Home() {
           </div>
           <div className="rounded-xl bg-white p-5 shadow-soft border border-gray-100">
             <h3 className="font-semibold mb-1">Study Momentum</h3>
-            <p className="text-sm text-gray-600">Use Pomodoro mode and analytics to stay consistent every day.</p>
+            <p className="text-sm text-gray-600">Use focus sessions and analytics to stay consistent every day.</p>
           </div>
         </div>
       </div>
