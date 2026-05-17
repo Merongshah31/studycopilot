@@ -23,7 +23,21 @@ function Pill({ label, tone }) {
 
 export default function Analytics() {
   const [data, setData] = useState(null)
-  useEffect(() => { apiFetch('/analytics/overview').then(setData).catch(() => {}) }, [])
+  async function loadAnalytics() {
+    const d = await apiFetch('/analytics/overview')
+    setData(d)
+  }
+  useEffect(() => { loadAnalytics().catch(() => {}) }, [])
+  useEffect(() => {
+    const onAgentEvents = (event) => {
+      const events = Array.isArray(event?.detail?.events) ? event.detail.events : []
+      if (events.includes('ANALYTICS_UPDATED') || events.includes('TASKS_UPDATED')) {
+        loadAnalytics().catch(() => {})
+      }
+    }
+    window.addEventListener('studypilot:agent-ui-events', onAgentEvents)
+    return () => window.removeEventListener('studypilot:agent-ui-events', onAgentEvents)
+  }, [])
   const priority = data?.charts?.priorityBreakdown || { high: 0, medium: 0, low: 0 }
   const status = data?.charts?.statusBreakdown || { completed: 0, open: 0, overdue: 0 }
   const weekly = data?.charts?.weeklyTrend || []

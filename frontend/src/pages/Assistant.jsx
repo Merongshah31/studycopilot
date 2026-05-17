@@ -10,6 +10,7 @@ export default function Assistant() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [agentMode, setAgentMode] = useState(true)
 
   const activeChat = useMemo(() => chats.find((chat) => chat.id === activeChatId), [chats, activeChatId])
 
@@ -58,10 +59,50 @@ export default function Assistant() {
     const content = input.trim()
     setInput('')
     try {
-      const data = await apiFetch(`/assistant/chats/${chatId}/respond`, { method: 'POST', body: JSON.stringify({ content }) })
-      setMessages((prev) => [...prev, data.userMessage, data.assistantMessage])
-      setChats((prev) => prev.map((chat) => (chat.id === chatId ? { ...chat, title: data.chat?.title || chat.title, updatedAt: data.chat?.updatedAt || chat.updatedAt } : chat))
-        .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || '')))
+      if (agentMode) {
+        const run = await apiFetch('/agent/run', { method: 'POST', body: JSON.stringify({ request_text: content }) })
+        const plannedSteps = Array.isArray(run?.plan_steps) ? run.plan_steps : []
+        const agentReply = {
+          id: `agent-${Date.now()}`,
+          role: 'assistant',
+          content: [
+            `Detected intent: ${run?.intent || 'unknown'} (${Math.round((run?.confidence || 0) * 100)}%)`,
+            plannedSteps.length > 0
+              ? `Planned steps:\n- ${plannedSteps.map((s) => `${s.agent}.${s.action}`).join('\n- ')}`
+              : 'Planned steps: none',
+            run?.summary || 'No summary.',
+            Array.isArray(run?.tool_results) && run.tool_results.length > 0
+              ? `\n\nTool results:\n- ${run.tool_results.map((r) => `${r.action}: ${r.message}`).join('\n- ')}`
+              : '',
+            Array.isArray(run?.errors) && run.errors.length > 0
+              ? `\n\nErrors:\n- ${run.errors.join('\n- ')}`
+              : '',
+          ].join(''),
+          createdAt: new Date().toISOString(),
+        }
+
+        // Save user+assistant in chat history for continuity
+        const data = await apiFetch(`/assistant/chats/${chatId}/respond`, {
+          method: 'POST',
+          body: JSON.stringify({ content, skipAutoActions: true }),
+        })
+        setMessages((prev) => [...prev, data.userMessage, agentReply])
+        setChats((prev) => prev.map((chat) => (
+          chat.id === chatId
+            ? { ...chat, title: data.chat?.title || chat.title, updatedAt: data.chat?.updatedAt || chat.updatedAt, lastMessagePreview: agentReply.content.slice(0, 80) }
+            : chat
+        )).sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || '')))
+
+        const events = Array.isArray(run?.ui_events) ? run.ui_events : []
+        if (events.length > 0) {
+          window.dispatchEvent(new CustomEvent('studypilot:agent-ui-events', { detail: { events } }))
+        }
+      } else {
+        const data = await apiFetch(`/assistant/chats/${chatId}/respond`, { method: 'POST', body: JSON.stringify({ content }) })
+        setMessages((prev) => [...prev, data.userMessage, data.assistantMessage])
+        setChats((prev) => prev.map((chat) => (chat.id === chatId ? { ...chat, title: data.chat?.title || chat.title, updatedAt: data.chat?.updatedAt || chat.updatedAt } : chat))
+          .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || '')))
+      }
     } catch (err) {
       setError(err?.message || 'Failed to send message.')
     } finally {
@@ -94,6 +135,15 @@ export default function Assistant() {
       <div>
         <h2 className="text-xl font-semibold">Nexa Assistant</h2>
         <p className="text-sm text-gray-500">Your calm study copilot with memory-aware planning.</p>
+        <div className="mt-2">
+          <button
+            type="button"
+            className={`rounded-full border px-3 py-1 text-xs ${agentMode ? 'bg-indigo-600 text-white border-indigo-600' : 'text-gray-700'}`}
+            onClick={() => setAgentMode((v) => !v)}
+          >
+            {agentMode ? 'Agent Mode: ON' : 'Agent Mode: OFF'}
+          </button>
+        </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         <Card className="p-3 lg:col-span-1 rounded-xl">

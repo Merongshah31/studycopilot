@@ -4,8 +4,25 @@ import { apiFetch } from '../lib/api'
 
 export default function Planner() {
   const [timeline, setTimeline] = useState({ morning: [], afternoon: [], night: [] })
+
+  async function loadPlanner() {
+    const data = await apiFetch('/planner/daily')
+    setTimeline(data?.timeline || { morning: [], afternoon: [], night: [] })
+  }
+
   useEffect(() => {
-    apiFetch('/planner/daily').then((data) => setTimeline(data?.timeline || { morning: [], afternoon: [], night: [] })).catch(() => {})
+    loadPlanner().catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    const onAgentEvents = (event) => {
+      const events = Array.isArray(event?.detail?.events) ? event.detail.events : []
+      if (events.includes('PLANNER_UPDATED') || events.includes('TASKS_UPDATED')) {
+        loadPlanner().catch(() => {})
+      }
+    }
+    window.addEventListener('studypilot:agent-ui-events', onAgentEvents)
+    return () => window.removeEventListener('studypilot:agent-ui-events', onAgentEvents)
   }, [])
 
   return (
@@ -30,4 +47,3 @@ export default function Planner() {
     </div>
   )
 }
-

@@ -16,16 +16,30 @@ export default function Dashboard() {
   const [analytics, setAnalytics] = useState(null)
   const [suggestions, setSuggestions] = useState([])
 
-  useEffect(() => {
-    Promise.all([
+  async function loadDashboard() {
+    const [t, a, s] = await Promise.all([
       apiFetch('/tasks').catch(() => []),
       apiFetch('/analytics/overview').catch(() => null),
       apiFetch('/assistant/suggestions').catch(() => ({ suggestions: [] })),
-    ]).then(([t, a, s]) => {
-      setTasks(Array.isArray(t) ? t : [])
-      setAnalytics(a)
-      setSuggestions(Array.isArray(s?.suggestions) ? s.suggestions : [])
-    })
+    ])
+    setTasks(Array.isArray(t) ? t : [])
+    setAnalytics(a)
+    setSuggestions(Array.isArray(s?.suggestions) ? s.suggestions : [])
+  }
+
+  useEffect(() => {
+    loadDashboard().catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    const onAgentEvents = (event) => {
+      const events = Array.isArray(event?.detail?.events) ? event.detail.events : []
+      if (events.some((e) => ['TASKS_UPDATED', 'PLANNER_UPDATED', 'ANALYTICS_UPDATED'].includes(e))) {
+        loadDashboard().catch(() => {})
+      }
+    }
+    window.addEventListener('studypilot:agent-ui-events', onAgentEvents)
+    return () => window.removeEventListener('studypilot:agent-ui-events', onAgentEvents)
   }, [])
 
   const upcoming = useMemo(() => tasks.filter((t) => !t.completed && t.deadline).sort((a, b) => (a.deadline || '').localeCompare(b.deadline || '')).slice(0, 5), [tasks])

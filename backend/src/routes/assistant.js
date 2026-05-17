@@ -123,6 +123,7 @@ function buildNexaSystemMessage(memory, context) {
     content: [
       'You are Nexa, StudyPilot AI Student Life Copilot.',
       'Core identity: supportive, calm, actionable, and concise.',
+      'You can directly apply app changes through backend actions (tasks/planner/calendar).',
       'Guardrails: never shame user, do not fabricate facts/deadlines, mention uncertainty when needed, ask at most one short clarifying question when context is missing.',
       'Response style: brief summary then practical next steps.',
       `Address user as: ${profileName}.`,
@@ -224,6 +225,30 @@ function buildEventDateTime(dateIso, timeObj, durationMin = 60) {
   return { start: base.toISOString(), end: end.toISOString() }
 }
 
+function extractPlannerTasksFromAssistantText(text) {
+  const lines = String(text || '').split('\n')
+  const results = []
+  for (const raw of lines) {
+    const line = raw.trim()
+    if (!/^\d+\./.test(line)) continue
+    const noIndex = line.replace(/^\d+\.\s*/, '')
+    const priorityMatch = noIndex.match(/priority\s*:\s*(high|medium|low|tinggi|sederhana|rendah)/i)
+    const priorityRaw = (priorityMatch?.[1] || '').toLowerCase()
+    const priority = priorityRaw === 'tinggi' ? 'high' : priorityRaw === 'sederhana' ? 'medium' : priorityRaw === 'rendah' ? 'low' : (priorityRaw || 'medium')
+    const title = noIndex
+      .replace(/\*\*/g, '')
+      .replace(/["“”]/g, '')
+      .replace(/\s*[-–—]\s*priority.*$/i, '')
+      .replace(/\s*priority\s*:.*$/i, '')
+      .replace(/\s*,?\s*\d+(\.\d+)?\s*(hours?|hrs?|h|min|minutes?)\s*$/i, '')
+      .trim()
+    if (title.length >= 4) {
+      results.push({ title: title.slice(0, 140), priority })
+    }
+  }
+  return results.slice(0, 8)
+}
+
 async function applyTaskAdjustmentsFromMessage(supabase, userId, content) {
   const text = String(content || '').trim()
   const lower = text.toLowerCase()
@@ -274,6 +299,36 @@ async function applyTaskAdjustmentsFromMessage(supabase, userId, content) {
         const { error } = await supabase.from('tasks').update({ priority: pr }).eq('id', matched.id).eq('user_id', userId)
         if (!error) actions.push(`Set priority for "${matched.title}" to ${pr}`)
       }
+    }
+  }
+
+  // "update it in my planner" from previous assistant suggestions
+  if (/(update|add|put|apply).*(planner|plan|task list)|(kemaskini|masukkan|tambah).*(planner|pelan|senarai tugas)/i.test(lower)) {
+    const { data: userChats } = await supabase.from('assistant_chats').select('id').eq('user_id', userId)
+    const chatIds = (Array.isArray(userChats) ? userChats : []).map((c) => c.id)
+    let lastAssistant = null
+    if (chatIds.length > 0) {
+      const { data: recentMessages } = await supabase
+        .from('assistant_messages')
+        .select('*')
+        .in('chat_id', chatIds)
+        .order('created_at', { ascending: false })
+        .limit(25)
+      lastAssistant = (Array.isArray(recentMessages) ? recentMessages : []).find((m) => m.role === 'assistant')
+    }
+    const extracted = extractPlannerTasksFromAssistantText(lastAssistant?.content || '')
+    for (const item of extracted) {
+      const row = {
+        id: uuidv4(),
+        user_id: userId,
+        title: item.title,
+        deadline: null,
+        priority: item.priority || 'medium',
+        completed: false,
+        created_at: nowIso(),
+      }
+      const { error } = await supabase.from('tasks').insert(row)
+      if (!error) actions.push(`Added to planner/tasks: "${row.title}"`)
     }
   }
 
@@ -432,6 +487,7 @@ router.post('/chats/:chatId/respond', async (req, res) => {
   const supabase = getSupabaseServerClient()
   if (!supabase) return res.status(500).json({ message: 'Supabase is not configured on backend' })
   const content = String(req.body?.content || '').trim()
+  const skipAutoActions = Boolean(req.body?.skipAutoActions)
   if (!content) return res.status(400).json({ message: 'content required' })
   const safety = checkUserInputSafety(content)
   const { data: chat, error: chatError } = await supabase.from('assistant_chats').select('*').eq('id', req.params.chatId).eq('user_id', req.user.id).maybeSingle()
@@ -453,8 +509,8 @@ router.post('/chats/:chatId/respond', async (req, res) => {
   const updatedMemory = updateMemoryFromUserText(memory, content)
   if (memoryAvailable) await saveUserMemory(supabase, req.user.id, updatedMemory)
 
-  const taskActions = await applyTaskAdjustmentsFromMessage(supabase, req.user.id, content)
-  const calendarActions = await applyCalendarAdjustmentsFromMessage(supabase, req.user.id, content)
+  const taskActions = skipAutoActions ? [] : await applyTaskAdjustmentsFromMessage(supabase, req.user.id, content)
+  const calendarActions = skipAutoActions ? [] : await applyCalendarAdjustmentsFromMessage(supabase, req.user.id, content)
   const allActions = [...taskActions, ...calendarActions]
 
   const modelInput = [
@@ -504,4 +560,3 @@ router.patch('/memory', async (req, res) => {
 })
 
 module.exports = router
-
