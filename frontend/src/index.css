@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --radius: 0.875rem;
+  --background: oklch(0.99 0.003 250);
+  --foreground: oklch(0.2 0.04 265);
+  --gradient-primary: linear-gradient(135deg, oklch(0.52 0.22 275), oklch(0.68 0.18 285));
+  --gradient-soft: linear-gradient(160deg, oklch(0.99 0.003 250), oklch(0.96 0.02 280));
+  --shadow-soft: 0 1px 2px oklch(0.2 0.04 265 / 0.04), 0 4px 12px oklch(0.2 0.04 265 / 0.04);
+  --shadow-elevated: 0 8px 24px -8px oklch(0.52 0.22 275 / 0.18);
+}
+
+@layer base {
+  html, body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  .bg-gradient-primary { background-image: var(--gradient-primary); }
+  .bg-gradient-soft { background-image: var(--gradient-soft); }
+  .shadow-soft { box-shadow: var(--shadow-soft); }
+  .shadow-elevated { box-shadow: var(--shadow-elevated); }
+}
+
+@layer components {
+  .card { @apply rounded-2xl bg-white p-6 shadow-soft; }
+  .btn-primary { @apply rounded-lg px-4 py-2 text-white shadow-elevated; }
+}
+
+.app-root { max-width: 1100px; margin: 28px auto; padding: 16px; }
+
