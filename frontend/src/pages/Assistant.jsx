@@ -67,22 +67,33 @@ export default function Assistant() {
       if (agentMode) {
         const run = await apiFetch('/agent/run', { method: 'POST', body: JSON.stringify({ request_text: content }) })
         const plannedSteps = Array.isArray(run?.plan_steps) ? run.plan_steps : []
+        const isFallback = (run?.intent || '') === 'fallback_chat' && plannedSteps.length === 0
+        const humanFallback = [
+          'Got it. I can help break that down clearly.',
+          'Tell me the exact task title you want to focus on, and I will split it into practical steps with time estimates.',
+          '',
+          'Example:',
+          '- "Break down task Revise chapter 5 into 5 steps"',
+          '- "Pecahkan tugasan Ulang kaji Bab 5 kepada 5 langkah"',
+        ].join('\n')
         const agentReply = {
           id: `agent-${Date.now()}`,
           role: 'assistant',
-          content: [
-            `Detected intent: ${run?.intent || 'unknown'} (${Math.round((run?.confidence || 0) * 100)}%)`,
-            plannedSteps.length > 0
-              ? `Planned steps:\n- ${plannedSteps.map((s) => `${s.agent}.${s.action}`).join('\n- ')}`
-              : 'Planned steps: none',
-            run?.summary || 'No summary.',
-            Array.isArray(run?.tool_results) && run.tool_results.length > 0
-              ? `\n\nTool results:\n- ${run.tool_results.map((r) => `${r.action}: ${r.message}`).join('\n- ')}`
-              : '',
-            Array.isArray(run?.errors) && run.errors.length > 0
-              ? `\n\nErrors:\n- ${run.errors.join('\n- ')}`
-              : '',
-          ].join(''),
+          content: isFallback
+            ? humanFallback
+            : [
+              `Detected intent: ${run?.intent || 'unknown'} (${Math.round((run?.confidence || 0) * 100)}%)`,
+              plannedSteps.length > 0
+                ? `Planned steps:\n- ${plannedSteps.map((s) => `${s.agent}.${s.action}`).join('\n- ')}`
+                : 'Planned steps: none',
+              run?.summary || 'No summary.',
+              Array.isArray(run?.tool_results) && run.tool_results.length > 0
+                ? `\n\nTool results:\n- ${run.tool_results.map((r) => `${r.action}: ${r.message}`).join('\n- ')}`
+                : '',
+              Array.isArray(run?.errors) && run.errors.length > 0
+                ? `\n\nErrors:\n- ${run.errors.join('\n- ')}`
+                : '',
+            ].join(''),
           createdAt: new Date().toISOString(),
         }
 

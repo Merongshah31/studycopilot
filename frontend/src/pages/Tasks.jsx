@@ -26,6 +26,10 @@ export default function Tasks() {
   const [statusFilter, setStatusFilter] = useState('open')
   const [sortBy, setSortBy] = useState('priority_due')
   const [loading, setLoading] = useState(true)
+  const [editingId, setEditingId] = useState('')
+  const [editTitle, setEditTitle] = useState('')
+  const [editDeadline, setEditDeadline] = useState('')
+  const [editPriority, setEditPriority] = useState('medium')
 
   async function load() {
     setLoading(true)
@@ -65,6 +69,35 @@ export default function Tasks() {
   async function del(id) {
     await apiFetch(`/tasks/${id}`, { method: 'DELETE' })
     setTasks((prev) => prev.filter((x) => x.id !== id))
+  }
+
+  function startEdit(task) {
+    setEditingId(task.id)
+    setEditTitle(task.title || '')
+    setEditDeadline(task.deadline || '')
+    setEditPriority(task.priority || 'medium')
+  }
+
+  function cancelEdit() {
+    setEditingId('')
+    setEditTitle('')
+    setEditDeadline('')
+    setEditPriority('medium')
+  }
+
+  async function saveEdit(taskId) {
+    const nextTitle = editTitle.trim()
+    if (!nextTitle) return
+    const row = await apiFetch(`/tasks/${taskId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        title: nextTitle,
+        deadline: editDeadline || null,
+        priority: editPriority || 'medium',
+      }),
+    })
+    setTasks((prev) => prev.map((x) => (x.id === row.id ? row : x)))
+    cancelEdit()
   }
 
   const visibleTasks = useMemo(() => {
@@ -173,18 +206,58 @@ export default function Tasks() {
         <>
         {visibleTasks.map((task) => (
           <li key={task.id} className="rounded-lg border p-3 flex items-center justify-between">
-            <div>
-              <p className={task.completed ? 'line-through text-gray-500' : ''}>{task.title}</p>
-              <div className="mt-1 flex items-center gap-2">
-                <span className="text-xs text-gray-500">{task.deadline || 'No deadline'}</span>
-                <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${priorityBadgeClass(task.priority || 'low')}`}>
-                  {(task.priority || 'low').toUpperCase()}
-                </span>
-              </div>
+            <div className="min-w-0 flex-1 pr-3">
+              {editingId === task.id ? (
+                <div className="space-y-2">
+                  <input
+                    className="w-full rounded-md border p-2 text-sm"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="Task title"
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <input
+                      className="rounded-md border p-2 text-sm"
+                      type="date"
+                      value={editDeadline}
+                      onChange={(e) => setEditDeadline(e.target.value)}
+                    />
+                    <select
+                      className="rounded-md border p-2 text-sm"
+                      value={editPriority}
+                      onChange={(e) => setEditPriority(e.target.value)}
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p className={task.completed ? 'line-through text-gray-500' : ''}>{task.title}</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="text-xs text-gray-500">{task.deadline || 'No deadline'}</span>
+                    <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${priorityBadgeClass(task.priority || 'low')}`}>
+                      {(task.priority || 'low').toUpperCase()}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
             <div className="flex gap-2">
-              <button className="rounded border px-2 py-1 text-sm" onClick={() => toggle(task)}>{task.completed ? 'Undo' : 'Done'}</button>
-              <button className="rounded border px-2 py-1 text-sm text-red-700" onClick={() => del(task.id)}>Delete</button>
+              {editingId === task.id ? (
+                <>
+                  <button className="rounded border px-2 py-1 text-sm" onClick={() => saveEdit(task.id)}>Save</button>
+                  <button className="rounded border px-2 py-1 text-sm" onClick={cancelEdit}>Cancel</button>
+                </>
+              ) : (
+                <>
+                  <button className="rounded border px-2 py-1 text-sm" onClick={() => startEdit(task)}>Edit</button>
+                  <button className="rounded border px-2 py-1 text-sm" onClick={() => toggle(task)}>{task.completed ? 'Undo' : 'Done'}</button>
+                  <button className="rounded border px-2 py-1 text-sm text-red-700" onClick={() => del(task.id)}>Delete</button>
+                </>
+              )}
             </div>
           </li>
         ))}
