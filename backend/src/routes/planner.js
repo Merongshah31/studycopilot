@@ -1,6 +1,6 @@
 const express = require('express')
-const db = require('../db')
 const authMiddleware = require('../middleware/auth')
+const { getSupabaseServerClient } = require('../supabase')
 
 const router = express.Router()
 router.use(authMiddleware)
@@ -11,8 +11,11 @@ function getSlot(priority) {
   return 'night'
 }
 
-router.get('/daily', (req, res) => {
-  const tasks = db.prepare('SELECT * FROM tasks WHERE userId = ? ORDER BY createdAt DESC').all(req.user.id)
+router.get('/daily', async (req, res) => {
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return res.status(500).json({ message: 'Supabase is not configured on backend' })
+  const { data: tasks, error } = await supabase.from('tasks').select('*').eq('user_id', req.user.id).order('created_at', { ascending: false })
+  if (error) return res.status(500).json({ message: `Failed to build planner: ${error.message}` })
   const active = tasks.filter((task) => !task.completed).slice(0, 9)
   const timeline = { morning: [], afternoon: [], night: [] }
   active.forEach((task) => {
@@ -20,7 +23,7 @@ router.get('/daily', (req, res) => {
     timeline[slot].push({
       id: task.id,
       title: task.title,
-      deadline: task.deadline,
+      deadline: task.deadline || null,
       priority: task.priority || 'low',
       suggestedMinutes: task.priority === 'high' ? 50 : task.priority === 'medium' ? 35 : 25,
     })
@@ -29,4 +32,3 @@ router.get('/daily', (req, res) => {
 })
 
 module.exports = router
-

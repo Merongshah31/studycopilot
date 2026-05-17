@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "nodemon --config nodemon.json",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "seed:supabase": "node scripts/seed-supabase.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.0.0",
