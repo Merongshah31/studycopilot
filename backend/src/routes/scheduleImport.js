@@ -1,11 +1,9 @@
 const express = require('express')
-const fs = require('fs')
-const path = require('path')
-const { spawn } = require('child_process')
 const { v4: uuidv4 } = require('uuid')
 const authMiddleware = require('../middleware/auth')
 const { getSupabaseServerClient } = require('../supabase')
 const { importTasksFromItems } = require('../agents/taskExecutor')
+const { extractScheduleWithNode } = require('../services/nodeScheduleExtractor')
 
 const router = express.Router()
 router.use(authMiddleware)
@@ -39,55 +37,6 @@ function toTaskItem(course) {
   }
 }
 
-function runExtractor(pdfPath) {
-  const cliPath = path.join(__dirname, '..', '..', 'schedule-ai-extractor', 'agent_extract_cli.py')
-  const cwd = path.join(__dirname, '..', '..', 'schedule-ai-extractor')
-  const configured = String(process.env.PYTHON_BIN || '').trim()
-  const candidates = [
-    configured ? { cmd: configured, args: [cliPath, pdfPath] } : null,
-    { cmd: 'python', args: [cliPath, pdfPath] },
-    { cmd: 'python3', args: [cliPath, pdfPath] },
-    { cmd: 'py', args: ['-3', cliPath, pdfPath] },
-    { cmd: 'py', args: [cliPath, pdfPath] },
-  ].filter(Boolean)
-
-  function tryOne(index) {
-    return new Promise((resolve, reject) => {
-      if (index >= candidates.length) {
-        return reject(new Error('Failed to start extractor process: no working Python executable found. Set PYTHON_BIN in backend/.env (example: PYTHON_BIN=py).'))
-      }
-      const candidate = candidates[index]
-      const child = spawn(candidate.cmd, candidate.args, { cwd, windowsHide: true })
-      let stdout = ''
-      let stderr = ''
-      let spawnError = null
-      child.on('error', (err) => { spawnError = err })
-      child.stdout.on('data', (chunk) => { stdout += chunk.toString() })
-      child.stderr.on('data', (chunk) => { stderr += chunk.toString() })
-      child.on('close', (code) => {
-        if (spawnError && spawnError.code === 'ENOENT') {
-          return resolve(tryOne(index + 1))
-        }
-        if (spawnError) {
-          return reject(new Error(`Failed to start extractor process (${candidate.cmd}): ${spawnError.message}`))
-        }
-        if (code !== 0) {
-          return reject(new Error(stderr || stdout || `Extractor exited with code ${code}`))
-        }
-        try {
-          const parsed = JSON.parse(stdout)
-          if (!parsed?.ok) return reject(new Error(parsed?.error || 'Extractor failed'))
-          return resolve(Array.isArray(parsed.courses) ? parsed.courses : [])
-        } catch (error) {
-          return reject(new Error(`Invalid extractor output: ${error.message}`))
-        }
-      })
-    })
-  }
-
-  return tryOne(0)
-}
-
 async function savePdfToSupabaseStorage(supabase, userId, fileName, fileBuffer) {
   const safeName = String(fileName || 'schedule.pdf').replace(/[^a-zA-Z0-9._-]/g, '_')
   const objectPath = `${userId}/${Date.now()}-${uuidv4()}-${safeName}`
@@ -111,17 +60,12 @@ router.post('/preview', async (req, res) => {
     const fileBuffer = Buffer.from(base64, 'base64')
     const storagePath = await savePdfToSupabaseStorage(supabase, req.user.id, fileName, fileBuffer)
 
-    const uploadDir = path.join(__dirname, '..', '..', 'data', 'uploads')
-    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
-    const tempPath = path.join(uploadDir, `${uuidv4()}.pdf`)
-    fs.writeFileSync(tempPath, fileBuffer)
-
-    let courses = []
-    try {
-      courses = await runExtractor(tempPath)
-    } finally {
-      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath)
-    }
+    const courses = await extractScheduleWithNode({
+      fileBuffer,
+      deepseekUrl: process.env.DEEPSEEK_API_URL,
+      deepseekKey: process.env.DEEPSEEK_API_KEY,
+      deepseekModel: process.env.DEEPSEEK_MODEL,
+    })
 
     const previewItems = courses.map(toTaskItem)
     const importId = uuidv4()

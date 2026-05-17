@@ -49,13 +49,15 @@ DEEPSEEK_API_KEY=...
 DEEPSEEK_MODEL=deepseek-chat
 ```
 
-## 5) Install Python extractor deps
+## 5) Install backend dependencies
 
-From `backend/schedule-ai-extractor`:
+From `backend`:
 
 ```bash
-pip install -r requirements.txt
+npm install
 ```
+
+This installs `pdf-parse` used by the Node-native schedule extractor.
 
 ## 6) Verify flow
 
@@ -68,3 +70,8 @@ Expected:
 - PDF object stored in bucket `schedule-pdfs` under `<user_id>/...`
 - row created/updated in `schedule_imports`
 - confirmed rows inserted into `tasks`
+
+## Railway note
+
+No Python runtime is required for Schedule Import now.
+The `/schedule-import/preview` flow runs fully in Node.js + DeepSeek API.
