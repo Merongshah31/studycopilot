@@ -22,11 +22,17 @@ function RouterApp() {
 
   const token = getToken()
   const hasSupabaseSessionToken = !!localStorage.getItem('sp_supabase_access_token')
+  const isAuthed = !!token || hasSupabaseSessionToken
   const protectedRoutes = ['/dashboard', '/tasks', '/planner', '/analytics', '/assistant', '/schedule-import', '/weekly-schedule', '/profile']
   const requiresAuth = protectedRoutes.some((route) => hash.startsWith(route))
-  if (!token && !hasSupabaseSessionToken && requiresAuth) {
+  if (!isAuthed && requiresAuth) {
     window.location.hash = '#/auth'
     return <Auth />
+  }
+
+  if (isAuthed && (hash === '/' || hash.startsWith('/auth'))) {
+    window.location.hash = '#/dashboard'
+    return <App />
   }
 
   let view = <App />
