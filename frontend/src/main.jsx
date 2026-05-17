@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client'
 import App from './App'
 import Auth from './pages/Auth'
 import Home from './pages/Home'
-import DebugPanel from './components/DebugPanel'
 import { getToken, loginAsGuest } from './lib/authClient'
 import { handleSupabaseAuth } from './lib/supabaseClient'
 import { pushDebugEvent } from './lib/debug'
@@ -64,7 +63,6 @@ function RouterApp() {
   return (
     <>
       {view}
-      <DebugPanel />
     </>
   )
 }

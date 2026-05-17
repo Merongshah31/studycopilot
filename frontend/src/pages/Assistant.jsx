@@ -76,24 +76,19 @@ export default function Assistant() {
           '- "Break down task Revise chapter 5 into 5 steps"',
           '- "Pecahkan tugasan Ulang kaji Bab 5 kepada 5 langkah"',
         ].join('\n')
+        const humanSummary = (() => {
+          const toolResults = Array.isArray(run?.tool_results) ? run.tool_results : []
+          const messages = toolResults.map((r) => String(r?.message || '').trim()).filter(Boolean)
+          if (messages.length > 0) return messages.join('\n')
+          if (typeof run?.summary === 'string' && run.summary.trim()) return run.summary.trim()
+          return 'Done. I have processed your request.'
+        })()
         const agentReply = {
           id: `agent-${Date.now()}`,
           role: 'assistant',
           content: isFallback
             ? humanFallback
-            : [
-              `Detected intent: ${run?.intent || 'unknown'} (${Math.round((run?.confidence || 0) * 100)}%)`,
-              plannedSteps.length > 0
-                ? `Planned steps:\n- ${plannedSteps.map((s) => `${s.agent}.${s.action}`).join('\n- ')}`
-                : 'Planned steps: none',
-              run?.summary || 'No summary.',
-              Array.isArray(run?.tool_results) && run.tool_results.length > 0
-                ? `\n\nTool results:\n- ${run.tool_results.map((r) => `${r.action}: ${r.message}`).join('\n- ')}`
-                : '',
-              Array.isArray(run?.errors) && run.errors.length > 0
-                ? `\n\nErrors:\n- ${run.errors.join('\n- ')}`
-                : '',
-            ].join(''),
+            : humanSummary,
           createdAt: new Date().toISOString(),
         }
 
@@ -245,7 +240,17 @@ export default function Assistant() {
                 </div>
               </div>
             ))}
-            {loading && <p className="text-sm text-gray-500">Thinking...</p>}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm bg-white border border-gray-200 text-gray-800">
+                  <div className="mb-1 flex items-center gap-1.5 text-[11px] opacity-80">
+                    <Bot className="h-3.5 w-3.5" />
+                    <span>Nexa</span>
+                  </div>
+                  <p className="tracking-[0.2em] text-gray-500 animate-pulse">...</p>
+                </div>
+              </div>
+            )}
           </div>
           <form onSubmit={sendMessage} className="border-t bg-white p-3">
             {error && <p className="mb-2 text-xs text-red-600">{error}</p>}

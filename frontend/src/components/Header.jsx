@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { getToken, logout } from '../lib/authClient'
 import { apiFetch } from '../lib/api'
-import { isDebugEnabled, setDebugEnabled } from '../lib/debug'
 import { supabase } from '../lib/supabaseClient'
 
 export default function Header() {
   const [name, setName] = useState('Student')
-  const [debug, setDebug] = useState(isDebugEnabled())
   const token = getToken()
   const supabaseToken = localStorage.getItem('sp_supabase_access_token')
   const isAuthed = !!token || !!supabaseToken
@@ -25,16 +23,6 @@ export default function Header() {
         <p className="text-sm text-gray-500">One focused session can change your whole day.</p>
       </div>
       <div className="flex items-center gap-2 md:gap-3 flex-wrap">
-        <button
-          className={`rounded-lg border px-2.5 md:px-3 py-2 text-xs md:text-sm ${debug ? 'bg-gray-900 text-white' : ''}`}
-          onClick={() => {
-            const next = !debug
-            setDebug(next)
-            setDebugEnabled(next)
-          }}
-        >
-          Debug {debug ? 'On' : 'Off'}
-        </button>
         <a href="#/tasks" className="btn-primary bg-gradient-primary text-xs md:text-sm">New Task</a>
         {!isAuthed && <a href="#/auth" className="rounded-lg border px-2.5 md:px-3 py-2 text-xs md:text-sm">Sign in</a>}
         {isAuthed && (

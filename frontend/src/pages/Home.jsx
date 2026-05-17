@@ -1,11 +1,9 @@
 import React from 'react'
 import { getToken, loginAsGuest } from '../lib/authClient'
-import { isDebugEnabled, setDebugEnabled } from '../lib/debug'
 import { ArrowRight, Bot, CalendarCheck2, Clock3, Sparkles } from 'lucide-react'
 
 export default function Home() {
   const token = getToken()
-  const [debug, setDebug] = React.useState(isDebugEnabled())
   const [guestError, setGuestError] = React.useState('')
 
   return (
@@ -23,9 +21,6 @@ export default function Home() {
                 Your personal student copilot for tasks, AI planning, deadlines, focus sessions, and daily momentum.
               </p>
               <div className="flex flex-wrap gap-3">
-                <button className={`rounded-lg border px-4 py-2 ${debug ? 'bg-gray-900 text-white' : ''}`} onClick={() => { const n = !debug; setDebug(n); setDebugEnabled(n) }}>
-                  Debug {debug ? 'On' : 'Off'}
-                </button>
                 {!token && (
                   <>
                     <a href="#/auth" className="btn-primary bg-gradient-primary inline-flex items-center gap-2">
