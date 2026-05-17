@@ -21,7 +21,7 @@ function RouterApp() {
   }, [])
 
   const token = getToken()
-  const protectedRoutes = ['/dashboard', '/tasks', '/planner', '/analytics', '/assistant', '/schedule-import']
+  const protectedRoutes = ['/dashboard', '/tasks', '/planner', '/analytics', '/assistant', '/schedule-import', '/weekly-schedule']
   const requiresAuth = protectedRoutes.some((route) => hash.startsWith(route))
   if (!token && requiresAuth) {
     window.location.hash = '#/auth'

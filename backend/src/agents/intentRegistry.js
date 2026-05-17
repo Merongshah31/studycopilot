@@ -91,6 +91,16 @@ const INTENT_REGISTRY = [
     }),
   },
   {
+    intent: 'weekly_schedule_rebalance',
+    confidence: 0.9,
+    patterns: [/((reschedule|rearrange|rebalance).*(week|weekly))|((susun|jadualkan semula).*(minggu|mingguan))/i],
+    build: ({ text }) => ({
+      requires_clarification: false,
+      clarification_question: '',
+      plan_steps: [{ step_id: 'task-1', agent: 'task', action: 'rebalance_weekly_schedule', payload: { raw_text: text } }],
+    }),
+  },
+  {
     intent: 'schedule_pdf_import',
     confidence: 0.9,
     patterns: [/((upload|import).*(pdf|schedule))|((muat naik|import).*(pdf|jadual))/i],

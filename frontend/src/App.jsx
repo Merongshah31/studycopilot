@@ -8,6 +8,7 @@ import Calendar from './pages/Calendar'
 import Analytics from './pages/Analytics'
 import Assistant from './pages/Assistant'
 import ScheduleImport from './pages/ScheduleImport'
+import WeeklySchedule from './pages/WeeklySchedule'
 
 export default function App() {
   const hash = window.location.hash.replace('#', '') || '/dashboard'
@@ -19,15 +20,16 @@ export default function App() {
     { test: (v) => v.startsWith('/analytics'), view: Analytics },
     { test: (v) => v.startsWith('/assistant'), view: Assistant },
     { test: (v) => v.startsWith('/schedule-import'), view: ScheduleImport },
+    { test: (v) => v.startsWith('/weekly-schedule'), view: WeeklySchedule },
   ]
   const matched = routeMap.find((entry) => entry.test(hash))
   const View = matched ? matched.view : Dashboard
 
   return (
     <div className="min-h-screen bg-gradient-soft">
-      <div className="app-root md:flex md:gap-6">
+      <div className="app-root md:flex md:gap-4 lg:gap-6">
         <Sidebar />
-        <main className="flex-1">
+        <main className="flex-1 min-w-0">
           <Header />
           <View />
         </main>

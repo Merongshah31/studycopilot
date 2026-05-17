@@ -16,14 +16,14 @@ export default function Header() {
   }, [token])
 
   return (
-    <header className="mb-6 flex items-center justify-between gap-3">
+    <header className="mb-4 md:mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
       <div>
-        <h1 className="text-2xl font-semibold">Welcome back, {name}</h1>
+        <h1 className="text-xl md:text-2xl font-semibold">Welcome back, {name}</h1>
         <p className="text-sm text-gray-500">One focused session can change your whole day.</p>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 md:gap-3 flex-wrap">
         <button
-          className={`rounded-lg border px-3 py-2 text-sm ${debug ? 'bg-gray-900 text-white' : ''}`}
+          className={`rounded-lg border px-2.5 md:px-3 py-2 text-xs md:text-sm ${debug ? 'bg-gray-900 text-white' : ''}`}
           onClick={() => {
             const next = !debug
             setDebug(next)
@@ -32,10 +32,10 @@ export default function Header() {
         >
           Debug {debug ? 'On' : 'Off'}
         </button>
-        <a href="#/tasks" className="btn-primary bg-gradient-primary">New Task</a>
-        {!token && <a href="#/auth" className="rounded-lg border px-3 py-2 text-sm">Sign in</a>}
+        <a href="#/tasks" className="btn-primary bg-gradient-primary text-xs md:text-sm">New Task</a>
+        {!token && <a href="#/auth" className="rounded-lg border px-2.5 md:px-3 py-2 text-xs md:text-sm">Sign in</a>}
         {token && (
-          <button className="rounded-lg border px-3 py-2 text-sm" onClick={() => { logout(); window.location.hash = '#/' }}>
+          <button className="rounded-lg border px-2.5 md:px-3 py-2 text-xs md:text-sm" onClick={() => { logout(); window.location.hash = '#/' }}>
             Sign out
           </button>
         )}
@@ -43,4 +43,3 @@ export default function Header() {
     </header>
   )
 }
-

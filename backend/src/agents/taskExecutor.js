@@ -18,6 +18,25 @@ function normalizePriority(priority) {
   return 'medium'
 }
 
+function startOfWeekMonday(date) {
+  const d = new Date(date)
+  const day = d.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  d.setDate(d.getDate() + diff)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+function addDays(date, amount) {
+  const d = new Date(date)
+  d.setDate(d.getDate() + amount)
+  return d
+}
+
+function isoDate(date) {
+  return date.toISOString().slice(0, 10)
+}
+
 async function findTaskByTitle(supabase, userId, title, { openOnly = false } = {}) {
   let query = supabase.from('tasks').select('*').eq('user_id', userId).order('created_at', { ascending: false })
   if (openOnly) query = query.eq('completed', false)
@@ -152,6 +171,7 @@ async function executeTaskStep({ supabase, userId, step }) {
   if (action === 'complete_by_title') return completeByTitle(supabase, userId, payload)
   if (action === 'reschedule_by_title') return rescheduleByTitle(supabase, userId, payload)
   if (action === 'set_priority_by_title') return setPriorityByTitle(supabase, userId, payload)
+  if (action === 'rebalance_weekly_schedule') return rebalanceWeeklySchedule(supabase, userId, payload)
   return {
     status: 'partial',
     action: action || 'unknown',
@@ -159,6 +179,70 @@ async function executeTaskStep({ supabase, userId, step }) {
     changed: [],
     ui_events: [],
     message: `Unsupported task action: ${action || 'unknown'}`,
+  }
+}
+
+async function rebalanceWeeklySchedule(supabase, userId, payload) {
+  const now = new Date()
+  const monday = startOfWeekMonday(now)
+  const slots = Array.from({ length: 7 }, (_, idx) => isoDate(addDays(monday, idx)))
+  const priorityWeight = { high: 3, medium: 2, low: 1 }
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('completed', false)
+    .order('created_at', { ascending: true })
+    .limit(200)
+  if (error) throw new Error(error.message)
+
+  const openTasks = Array.isArray(data) ? data : []
+  if (openTasks.length === 0) {
+    return {
+      status: 'partial',
+      action: 'rebalance_weekly_schedule',
+      changed_count: 0,
+      changed: [],
+      ui_events: [],
+      message: 'No open tasks available to rebalance this week.',
+    }
+  }
+
+  openTasks.sort((a, b) => {
+    const pa = priorityWeight[a.priority] || 1
+    const pb = priorityWeight[b.priority] || 1
+    if (pb !== pa) return pb - pa
+    const da = a.deadline ? new Date(a.deadline).getTime() : Number.POSITIVE_INFINITY
+    const db = b.deadline ? new Date(b.deadline).getTime() : Number.POSITIVE_INFINITY
+    return da - db
+  })
+
+  const changed = []
+  for (let idx = 0; idx < openTasks.length; idx += 1) {
+    const task = openTasks[idx]
+    const targetDate = slots[idx % slots.length]
+    if (task.deadline === targetDate) continue
+    const { data: updated, error: updateError } = await supabase
+      .from('tasks')
+      .update({ deadline: targetDate })
+      .eq('id', task.id)
+      .eq('user_id', userId)
+      .select('*')
+      .maybeSingle()
+    if (updateError) throw new Error(updateError.message)
+    changed.push(taskView(updated || { ...task, deadline: targetDate }))
+  }
+
+  return {
+    status: 'ok',
+    action: 'rebalance_weekly_schedule',
+    changed_count: changed.length,
+    changed,
+    ui_events: TASK_UI_EVENTS,
+    message: changed.length > 0
+      ? `Weekly schedule rebalanced for ${changed.length} task(s).`
+      : 'Weekly schedule is already balanced.',
   }
 }
 

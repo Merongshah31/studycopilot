@@ -1,5 +1,5 @@
 import React from 'react'
-import { Home, List, Zap, BarChart2, CalendarDays, Upload } from 'lucide-react'
+import { Home, List, Zap, BarChart2, CalendarDays, Upload, CalendarRange } from 'lucide-react'
 
 function Item({ href, icon: Icon, active, children }) {
   return (
@@ -13,7 +13,7 @@ function Item({ href, icon: Icon, active, children }) {
 export default function Sidebar() {
   const hash = window.location.hash.replace('#', '') || '/'
   return (
-    <aside className="w-64 pr-6 hidden md:block">
+    <aside className="w-56 lg:w-64 pr-4 lg:pr-6 hidden md:block shrink-0">
       <div className="mb-6">
         <div className="inline-flex items-center gap-3">
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary text-white">SP</span>
@@ -27,6 +27,7 @@ export default function Sidebar() {
         <Item href="#/dashboard" icon={Home} active={hash.startsWith('/dashboard')}>Dashboard</Item>
         <Item href="#/tasks" icon={List} active={hash.startsWith('/tasks')}>Tasks</Item>
         <Item href="#/calendar" icon={CalendarDays} active={hash.startsWith('/calendar')}>Calendar</Item>
+        <Item href="#/weekly-schedule" icon={CalendarRange} active={hash.startsWith('/weekly-schedule')}>Weekly Schedule</Item>
         <Item href="#/assistant" icon={Zap} active={hash.startsWith('/assistant')}>AI Assistant</Item>
         <Item href="#/schedule-import" icon={Upload} active={hash.startsWith('/schedule-import')}>Schedule Import</Item>
         <Item href="#/planner" icon={Zap} active={hash.startsWith('/planner')}>Planner</Item>
