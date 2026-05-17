@@ -72,16 +72,19 @@ router.post('/oauth', async (req, res) => {
 })
 
 router.post('/guest', (req, res) => {
-  const id = uuidv4()
-  const createdAt = new Date().toISOString()
-  const suffix = id.slice(0, 8)
-  const email = `guest-${suffix}@studypilot.local`
-  const name = `Guest ${suffix}`
-  db.prepare('INSERT INTO users (id,name,email,password,course,subjects,provider,providerId,createdAt) VALUES (?,?,?,?,?,?,?,?,?)')
-    .run(id, name, email, '', '', JSON.stringify([]), 'guest', id, createdAt)
-  const token = jwt.sign({ id, email, guest: true }, process.env.JWT_SECRET || 'dev_secret', { expiresIn: '7d' })
-  res.status(201).json({ id, email, name, token, guest: true })
+  try {
+    const id = uuidv4()
+    const createdAt = new Date().toISOString()
+    const suffix = id.slice(0, 8)
+    const email = `guest-${suffix}@studypilot.local`
+    const name = `Guest ${suffix}`
+    db.prepare('INSERT INTO users (id,name,email,password,course,subjects,provider,providerId,createdAt) VALUES (?,?,?,?,?,?,?,?,?)')
+      .run(id, name, email, '', '', JSON.stringify([]), 'guest', id, createdAt)
+    const token = jwt.sign({ id, email, guest: true }, process.env.JWT_SECRET || 'dev_secret', { expiresIn: '7d' })
+    res.status(201).json({ id, email, name, token, guest: true })
+  } catch (error) {
+    res.status(500).json({ message: `Guest login failed: ${error.message}` })
+  }
 })
 
 module.exports = router
-

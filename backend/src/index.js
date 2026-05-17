@@ -13,7 +13,6 @@ const authRouter = require('./routes/auth')
 const tasksRouter = require('./routes/tasks')
 const usersRouter = require('./routes/users')
 const plannerRouter = require('./routes/planner')
-const studyRouter = require('./routes/study')
 const analyticsRouter = require('./routes/analytics')
 const aiRouter = require('./routes/ai')
 const assistantRouter = require('./routes/assistant')
@@ -34,7 +33,6 @@ app.use('/api/auth', authRouter)
 app.use('/api/tasks', tasksRouter)
 app.use('/api/users', usersRouter)
 app.use('/api/planner', plannerRouter)
-app.use('/api/study', studyRouter)
 app.use('/api/analytics', analyticsRouter)
 app.use('/api/ai', aiRouter)
 app.use('/api/assistant', assistantRouter)
@@ -49,4 +47,3 @@ server.on('error', (error) => {
   }
   throw error
 })
-

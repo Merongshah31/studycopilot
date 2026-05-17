@@ -34,7 +34,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Stat title="Today's tasks" value={tasks.filter((t) => !t.completed).length} />
-        <Stat title="Study sessions" value={analytics?.totals?.sessionsCount ?? 0} />
+        <Stat title="Completed tasks" value={analytics?.totals?.completedTasks ?? 0} />
         <Stat title="Productivity" value={`${analytics?.totals?.productivityScore ?? 0}%`} />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -55,4 +55,3 @@ export default function Dashboard() {
     </div>
   )
 }
-

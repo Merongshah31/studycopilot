@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5174,
-    allowedHosts: ['remaining-characters-solar-diagram.trycloudflare.com'],
+    allowedHosts: ['certain-server-std-merge.trycloudflare.com'],
     proxy: {
       '/api': {
         target: 'http://localhost:5050',

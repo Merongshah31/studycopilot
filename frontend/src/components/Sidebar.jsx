@@ -1,5 +1,5 @@
 import React from 'react'
-import { Home, List, Clock, Zap, BarChart2 } from 'lucide-react'
+import { Home, List, Zap, BarChart2 } from 'lucide-react'
 
 function Item({ href, icon: Icon, active, children }) {
   return (
@@ -27,11 +27,9 @@ export default function Sidebar() {
         <Item href="#/dashboard" icon={Home} active={hash.startsWith('/dashboard')}>Dashboard</Item>
         <Item href="#/tasks" icon={List} active={hash.startsWith('/tasks')}>Tasks</Item>
         <Item href="#/assistant" icon={Zap} active={hash.startsWith('/assistant')}>AI Assistant</Item>
-        <Item href="#/study" icon={Clock} active={hash.startsWith('/study')}>Study Mode</Item>
         <Item href="#/planner" icon={Zap} active={hash.startsWith('/planner')}>Planner</Item>
         <Item href="#/analytics" icon={BarChart2} active={hash.startsWith('/analytics')}>Analytics</Item>
       </nav>
     </aside>
   )
 }
-

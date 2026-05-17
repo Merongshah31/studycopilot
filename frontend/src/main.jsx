@@ -21,7 +21,7 @@ function RouterApp() {
   }, [])
 
   const token = getToken()
-  const protectedRoutes = ['/dashboard', '/tasks', '/planner', '/study', '/analytics', '/assistant']
+  const protectedRoutes = ['/dashboard', '/tasks', '/planner', '/analytics', '/assistant']
   const requiresAuth = protectedRoutes.some((route) => hash.startsWith(route))
   if (!token && requiresAuth) {
     window.location.hash = '#/auth'
@@ -67,4 +67,3 @@ handleSupabaseAuth(async (session) => {
 })
 
 root.render(<RouterApp />)
-

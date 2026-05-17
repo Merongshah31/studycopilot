@@ -4,7 +4,6 @@ import Header from './components/Header'
 import Dashboard from './pages/Dashboard'
 import Tasks from './pages/Tasks'
 import Planner from './pages/Planner'
-import StudyMode from './pages/StudyMode'
 import Analytics from './pages/Analytics'
 import Assistant from './pages/Assistant'
 
@@ -14,7 +13,6 @@ export default function App() {
     { test: (v) => v.startsWith('/dashboard'), view: Dashboard },
     { test: (v) => v.startsWith('/tasks'), view: Tasks },
     { test: (v) => v.startsWith('/planner'), view: Planner },
-    { test: (v) => v.startsWith('/study'), view: StudyMode },
     { test: (v) => v.startsWith('/analytics'), view: Analytics },
     { test: (v) => v.startsWith('/assistant'), view: Assistant },
   ]
@@ -33,4 +31,3 @@ export default function App() {
     </div>
   )
 }
-
