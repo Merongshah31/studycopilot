@@ -3,7 +3,7 @@ import { pushDebugEvent } from './debug'
 const API_BASE = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '/api'
 
 export async function apiFetch(path, options = {}) {
-  const token = localStorage.getItem('sp_token')
+  const token = localStorage.getItem('sp_token') || localStorage.getItem('sp_supabase_access_token')
   const headers = options.headers || {}
   if (token) headers.Authorization = `Bearer ${token}`
   if (!headers['Content-Type'] && options.body) headers['Content-Type'] = 'application/json'
