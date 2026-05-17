@@ -10,6 +10,8 @@ import Assistant from './pages/Assistant'
 import ScheduleImport from './pages/ScheduleImport'
 import WeeklySchedule from './pages/WeeklySchedule'
 import ProfileSettings from './pages/ProfileSettings'
+import Faq from './pages/Faq'
+import Guidelines from './pages/Guidelines'
 
 export default function App() {
   const hash = window.location.hash.replace('#', '') || '/dashboard'
@@ -23,6 +25,8 @@ export default function App() {
     { test: (v) => v.startsWith('/schedule-import'), view: ScheduleImport },
     { test: (v) => v.startsWith('/weekly-schedule'), view: WeeklySchedule },
     { test: (v) => v.startsWith('/profile'), view: ProfileSettings },
+    { test: (v) => v.startsWith('/faq'), view: Faq },
+    { test: (v) => v.startsWith('/guidelines'), view: Guidelines },
   ]
   const matched = routeMap.find((entry) => entry.test(hash))
   const View = matched ? matched.view : Dashboard

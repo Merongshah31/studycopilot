@@ -17,7 +17,6 @@ export default function Auth() {
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [course, setCourse] = useState('')
-  const [subjects, setSubjects] = useState('')
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
   const [checkingEmail, setCheckingEmail] = useState(false)
@@ -67,7 +66,7 @@ export default function Auth() {
     setLoading(true)
     try {
       if (mode === 'login') await login({ email: normalizedEmail, password })
-      else await register({ name, email: normalizedEmail, password, course, subjects: subjects.split(',').map((x) => x.trim()).filter(Boolean) })
+      else await register({ name, email: normalizedEmail, password, course, subjects: [] })
       window.location.hash = '#/dashboard'
     } catch (error) {
       setErr(error.message || 'Authentication failed')
@@ -84,8 +83,7 @@ export default function Auth() {
           {mode === 'register' && (
             <>
               <input className="w-full p-2 rounded-md border" placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} required />
-              <input className="w-full p-2 rounded-md border" placeholder="Course (optional)" value={course} onChange={(e) => setCourse(e.target.value)} />
-              <input className="w-full p-2 rounded-md border" placeholder="Subjects (comma separated)" value={subjects} onChange={(e) => setSubjects(e.target.value)} />
+              <input className="w-full p-2 rounded-md border" placeholder="University (optional)" value={course} onChange={(e) => setCourse(e.target.value)} />
             </>
           )}
           <input

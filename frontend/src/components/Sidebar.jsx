@@ -1,5 +1,5 @@
 import React from 'react'
-import { Home, List, Zap, BarChart2, CalendarDays, Upload, CalendarRange, UserCircle2 } from 'lucide-react'
+import { Home, List, Zap, BarChart2, CalendarDays, Upload, CalendarRange, UserCircle2, HelpCircle, BookOpen } from 'lucide-react'
 
 function Item({ href, icon: Icon, active, children }) {
   return (
@@ -46,6 +46,8 @@ export default function Sidebar() {
           <MobileItem href="#/planner" icon={Zap} active={hash.startsWith('/planner')}>Planner</MobileItem>
           <MobileItem href="#/analytics" icon={BarChart2} active={hash.startsWith('/analytics')}>Analytics</MobileItem>
           <MobileItem href="#/profile" icon={UserCircle2} active={hash.startsWith('/profile')}>Profile</MobileItem>
+          <MobileItem href="#/guidelines" icon={BookOpen} active={hash.startsWith('/guidelines')}>Guidelines</MobileItem>
+          <MobileItem href="#/faq" icon={HelpCircle} active={hash.startsWith('/faq')}>FAQ</MobileItem>
         </nav>
       </div>
 
@@ -69,6 +71,8 @@ export default function Sidebar() {
         <Item href="#/planner" icon={Zap} active={hash.startsWith('/planner')}>Planner</Item>
         <Item href="#/analytics" icon={BarChart2} active={hash.startsWith('/analytics')}>Analytics</Item>
         <Item href="#/profile" icon={UserCircle2} active={hash.startsWith('/profile')}>Profile Settings</Item>
+        <Item href="#/guidelines" icon={BookOpen} active={hash.startsWith('/guidelines')}>Guidelines</Item>
+        <Item href="#/faq" icon={HelpCircle} active={hash.startsWith('/faq')}>FAQ</Item>
       </nav>
       </aside>
     </>
