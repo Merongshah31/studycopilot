@@ -23,7 +23,7 @@ function RouterApp() {
 
   useEffect(() => {
     const run = async () => {
-      const forceGuest = String(import.meta.env.VITE_FORCE_GUEST_LOGIN || 'true').toLowerCase() === 'true'
+      const forceGuest = String(import.meta.env.VITE_FORCE_GUEST_LOGIN || 'false').toLowerCase() === 'true'
       if (!forceGuest) return
       if (getToken() || localStorage.getItem('sp_supabase_access_token')) return
       setBootstrappingGuest(true)
@@ -73,34 +73,11 @@ handleSupabaseAuth(async (session) => {
   try {
     const tokenKey = 'sp_supabase_access_token'
     const existingSupabaseAccessToken = localStorage.getItem(tokenKey)
-    const existingBackendToken = localStorage.getItem('sp_token')
-    if (existingBackendToken && existingSupabaseAccessToken === session.access_token) return
-    const body = {
-      provider: 'supabase',
-      providerId: session.user.id,
-      email: session.user.email,
-      name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email,
-      accessToken: session.access_token,
-    }
-    const apiBase = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '/api'
-    const endpoint = `${apiBase}/auth/oauth`
-    pushDebugEvent('supabase-oauth-sync-start', { endpoint, email: body.email, providerId: body.providerId })
-    const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-    const raw = await res.text()
-    let data = {}
-    try {
-      data = raw ? JSON.parse(raw) : {}
-    } catch {
-      data = {}
-    }
-    pushDebugEvent('supabase-oauth-sync-response', { status: res.status, ok: res.ok, hasToken: !!data?.token, message: data?.message || '' })
-    if (data?.token) {
-      localStorage.setItem('sp_token', data.token)
-      localStorage.setItem(tokenKey, session.access_token)
-      window.location.hash = '#/dashboard'
-      return
-    }
-    throw new Error(data?.message || `OAuth sync failed (${res.status})`)
+    if (existingSupabaseAccessToken === session.access_token) return
+    localStorage.setItem(tokenKey, session.access_token)
+    localStorage.removeItem('sp_token')
+    pushDebugEvent('supabase-oauth-session-ready', { userId: session.user.id, email: session.user.email || '' })
+    window.location.hash = '#/dashboard'
   } catch (error) {
     pushDebugEvent('supabase-oauth-sync-error', { message: error.message })
   }
