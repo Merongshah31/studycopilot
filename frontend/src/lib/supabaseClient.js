@@ -12,7 +12,7 @@ export const supabase = url && key
       flowType: 'pkce',
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: false,
+      detectSessionInUrl: true,
     },
   })
   : null
@@ -33,29 +33,6 @@ export async function handleSupabaseAuth(sessionHandler) {
   if (!url || !key || !supabase) {
     pushDebugEvent('supabase-config-missing', { hasUrl: !!url, hasAnonKey: !!key })
     return
-  }
-
-  try {
-    const fragment = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : ''
-    const params = new URLSearchParams(fragment)
-    const accessToken = params.get('access_token')
-    const refreshToken = params.get('refresh_token')
-    if (accessToken && refreshToken) {
-      const { data, error } = await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      })
-      pushDebugEvent('supabase-session-from-fragment', {
-        ok: !error,
-        hasSession: !!data?.session,
-        message: error?.message || '',
-      })
-      if (!error) {
-        window.history.replaceState({}, document.title, `${window.location.origin}${window.location.pathname}${window.location.search}`)
-      }
-    }
-  } catch (error) {
-    pushDebugEvent('supabase-session-fragment-error', { message: error.message })
   }
 
   const { data } = await supabase.auth.getSession()
