@@ -28,6 +28,35 @@ app.use((err, req, res, next) => {
 
 app.get('/', (req, res) => res.json({ message: 'StudyCopilot API', status: 'running' }))
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }))
+app.get('/api/health/auth-config', (req, res) => {
+  const required = [
+    'SUPABASE_URL',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'JWT_SECRET',
+    'FRONTEND_URL',
+  ]
+  const optional = [
+    'GOOGLE_CLIENT_ID',
+    'GOOGLE_CLIENT_SECRET',
+    'GOOGLE_REDIRECT_URI',
+    'DEEPSEEK_API_URL',
+    'DEEPSEEK_API_KEY',
+    'DEEPSEEK_MODEL',
+  ]
+  const check = (key) => {
+    const value = String(process.env[key] || '').trim()
+    return {
+      key,
+      ok: !!value,
+      len: value.length,
+    }
+  }
+  return res.json({
+    status: 'ok',
+    required: required.map(check),
+    optional: optional.map(check),
+  })
+})
 app.use('/api/auth', authRouter)
 app.use('/api/tasks', tasksRouter)
 app.use('/api/users', usersRouter)
