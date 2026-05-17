@@ -20,9 +20,9 @@ export async function loginAsGuest() {
 
 export function logout() {
   localStorage.removeItem('sp_token')
+  localStorage.removeItem('sp_supabase_access_token')
 }
 
 export function getToken() {
   return localStorage.getItem('sp_token')
 }
-
