@@ -34,9 +34,8 @@ export function getDebugSnapshot() {
     appTokenPreview: token ? `${token.slice(0, 12)}...` : '',
     hasSupabaseToken: !!supabaseToken,
     supabaseTokenPreview: supabaseToken ? `${supabaseToken.slice(0, 12)}...` : '',
-    apiBase: import.meta.env.VITE_API_URL || '/api',
+    apiBase: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '/api',
     hasSupabaseUrl: !!import.meta.env.VITE_SUPABASE_URL,
     hasSupabaseAnonKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
   }
 }
-

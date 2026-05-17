@@ -21,9 +21,10 @@ function RouterApp() {
   }, [])
 
   const token = getToken()
+  const hasSupabaseSessionToken = !!localStorage.getItem('sp_supabase_access_token')
   const protectedRoutes = ['/dashboard', '/tasks', '/planner', '/analytics', '/assistant', '/schedule-import', '/weekly-schedule', '/profile']
   const requiresAuth = protectedRoutes.some((route) => hash.startsWith(route))
-  if (!token && requiresAuth) {
+  if (!token && !hasSupabaseSessionToken && requiresAuth) {
     window.location.hash = '#/auth'
     return <Auth />
   }
@@ -51,16 +52,25 @@ handleSupabaseAuth(async (session) => {
       name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email,
       accessToken: session.access_token,
     }
-    const endpoint = (import.meta.env.VITE_API_URL || '/api') + '/auth/oauth'
+    const apiBase = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '/api'
+    const endpoint = `${apiBase}/auth/oauth`
     pushDebugEvent('supabase-oauth-sync-start', { endpoint, email: body.email, providerId: body.providerId })
     const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-    const data = await res.json()
+    const raw = await res.text()
+    let data = {}
+    try {
+      data = raw ? JSON.parse(raw) : {}
+    } catch {
+      data = {}
+    }
     pushDebugEvent('supabase-oauth-sync-response', { status: res.status, ok: res.ok, hasToken: !!data?.token, message: data?.message || '' })
     if (data?.token) {
       localStorage.setItem('sp_token', data.token)
       localStorage.setItem(tokenKey, session.access_token)
       window.location.hash = '#/dashboard'
+      return
     }
+    throw new Error(data?.message || `OAuth sync failed (${res.status})`)
   } catch (error) {
     pushDebugEvent('supabase-oauth-sync-error', { message: error.message })
   }

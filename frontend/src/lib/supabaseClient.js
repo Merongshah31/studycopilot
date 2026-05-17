@@ -12,7 +12,7 @@ export async function signInWithGoogle() {
     throw new Error('Supabase not configured')
   }
   pushDebugEvent('supabase-google-signin-start')
-  return supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/#/dashboard` } })
+  return supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })
 }
 
 export async function handleSupabaseAuth(sessionHandler) {
@@ -30,4 +30,3 @@ export async function handleSupabaseAuth(sessionHandler) {
     if (session) sessionHandler(session)
   })
 }
-
