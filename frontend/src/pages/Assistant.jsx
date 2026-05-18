@@ -4,6 +4,11 @@ import Card from '../components/Card'
 import { apiFetch } from '../lib/api'
 
 const CHAT_USAGE_LIMIT = 100
+const MIN_TYPING_MS = 1200
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 export default function Assistant() {
   const [chats, setChats] = useState([])
@@ -61,6 +66,7 @@ export default function Assistant() {
       setActiveChatId(chatId)
     }
     setLoading(true)
+    const typingStart = Date.now()
     const content = input.trim()
     setInput('')
     try {
@@ -97,10 +103,16 @@ export default function Assistant() {
           method: 'POST',
           body: JSON.stringify({ content, skipAutoActions: true }),
         })
-        setMessages((prev) => [...prev, data.userMessage, agentReply])
+        const assistantToShow = data?.assistantMessage || agentReply
+        setMessages((prev) => [...prev, data.userMessage, assistantToShow])
         setChats((prev) => prev.map((chat) => (
           chat.id === chatId
-            ? { ...chat, title: data.chat?.title || chat.title, updatedAt: data.chat?.updatedAt || chat.updatedAt, lastMessagePreview: agentReply.content.slice(0, 80) }
+            ? {
+              ...chat,
+              title: data.chat?.title || chat.title,
+              updatedAt: data.chat?.updatedAt || chat.updatedAt,
+              lastMessagePreview: String(assistantToShow?.content || '').slice(0, 80),
+            }
             : chat
         )).sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || '')))
 
@@ -120,6 +132,8 @@ export default function Assistant() {
     } catch (err) {
       setError(err?.message || 'Failed to send message.')
     } finally {
+      const elapsed = Date.now() - typingStart
+      if (elapsed < MIN_TYPING_MS) await wait(MIN_TYPING_MS - elapsed)
       setLoading(false)
     }
   }
