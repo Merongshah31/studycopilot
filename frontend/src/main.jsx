@@ -6,7 +6,10 @@ import Home from './pages/Home'
 import { getToken, loginAsGuest } from './lib/authClient'
 import { handleSupabaseAuth } from './lib/supabaseClient'
 import { pushDebugEvent } from './lib/debug'
+import { initTheme } from './lib/theme'
 import './index.css'
+
+initTheme()
 
 const root = createRoot(document.getElementById('root'))
 

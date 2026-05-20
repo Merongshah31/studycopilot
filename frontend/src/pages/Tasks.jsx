@@ -17,6 +17,15 @@ function priorityBadgeClass(priority) {
   return 'bg-emerald-50 text-emerald-700 border-emerald-200'
 }
 
+function filterPillClass(active) {
+  return [
+    'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+    active
+      ? 'border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900'
+      : 'border-slate-300 bg-transparent text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800',
+  ].join(' ')
+}
+
 export default function Tasks() {
   const [tasks, setTasks] = useState([])
   const [title, setTitle] = useState('')
@@ -157,9 +166,7 @@ export default function Tasks() {
                 key={p}
                 type="button"
                 onClick={() => setPriorityFilter(p)}
-                className={`rounded-full border px-3 py-1 text-xs ${
-                  priorityFilter === p ? 'bg-indigo-600 border-indigo-600 text-white' : 'hover:bg-gray-50'
-                }`}
+                className={filterPillClass(priorityFilter === p)}
               >
                 {p === 'all' ? 'All Priorities' : p[0].toUpperCase() + p.slice(1)}
               </button>
@@ -176,9 +183,7 @@ export default function Tasks() {
                 key={item.key}
                 type="button"
                 onClick={() => setStatusFilter(item.key)}
-                className={`rounded-full border px-3 py-1 text-xs ${
-                  statusFilter === item.key ? 'bg-indigo-600 border-indigo-600 text-white' : 'hover:bg-gray-50'
-                }`}
+                className={filterPillClass(statusFilter === item.key)}
               >
                 {item.label}
               </button>
@@ -186,7 +191,7 @@ export default function Tasks() {
           </div>
 
           <div>
-            <select className="w-full rounded-md border p-2 text-sm" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+            <select className="w-full rounded-lg border border-slate-300 bg-transparent p-2 text-sm dark:border-slate-600 dark:text-slate-100" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
               <option value="priority_due">Sort: Priority then Due Date</option>
               <option value="due_near">Sort: Nearest Due Date</option>
               <option value="priority_only">Sort: Priority Only</option>

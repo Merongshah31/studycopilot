@@ -12,6 +12,13 @@
   --shadow-elevated: 0 8px 24px -8px oklch(0.52 0.22 275 / 0.18);
 }
 
+:root.dark {
+  --background: oklch(0.18 0.02 265);
+  --foreground: oklch(0.95 0.01 260);
+  --gradient-soft: linear-gradient(160deg, oklch(0.19 0.02 265), oklch(0.23 0.02 280));
+  --shadow-soft: 0 1px 2px oklch(0.05 0.02 265 / 0.35), 0 4px 12px oklch(0.05 0.02 265 / 0.35);
+}
+
 @layer base {
   html, body {
     background: var(--background);
@@ -21,6 +28,44 @@
   h1, h2, h3, h4 {
     font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
     letter-spacing: -0.02em;
+  }
+
+  .dark .text-gray-500 { color: rgb(148 163 184); }
+  .dark .text-gray-600 { color: rgb(148 163 184); }
+  .dark .text-gray-700 { color: rgb(203 213 225); }
+  .dark .border { border-color: rgb(51 65 85); }
+  .dark .bg-white { background-color: rgb(15 23 42); color: rgb(226 232 240); }
+  .dark .bg-gray-50 { background-color: rgb(30 41 59); }
+  .dark input,
+  .dark select,
+  .dark textarea {
+    background-color: rgb(15 23 42);
+    color: rgb(226 232 240);
+    border-color: rgb(51 65 85);
+  }
+  .dark input::placeholder,
+  .dark textarea::placeholder { color: rgb(148 163 184); }
+
+  .dark .weekly-board {
+    background-color: rgb(15 23 42);
+    border-color: rgb(51 65 85);
+  }
+
+  .dark .weekly-column {
+    background-color: rgb(30 41 59);
+    border-color: rgb(71 85 105);
+  }
+
+  .dark .weekly-empty {
+    color: rgb(148 163 184);
+    border-color: rgb(100 116 139);
+    background-color: rgb(30 41 59);
+  }
+
+  .dark .weekly-agent-msg {
+    background-color: rgb(15 23 42);
+    color: rgb(226 232 240);
+    border-color: rgb(51 65 85);
   }
 }
 

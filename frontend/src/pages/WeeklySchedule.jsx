@@ -226,7 +226,7 @@ export default function WeeklySchedule() {
           </button>
         </div>
       </div>
-      {agentMessage && <div className="rounded-lg border bg-white px-3 py-2 text-sm">{agentMessage}</div>}
+      {agentMessage && <div className="weekly-agent-msg rounded-lg border bg-white px-3 py-2 text-sm">{agentMessage}</div>}
       {loading && (
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
           <Card className="p-3">
@@ -251,13 +251,13 @@ export default function WeeklySchedule() {
       )}
       {!loading && (
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="overflow-x-auto rounded-xl border bg-white p-3">
+        <div className="weekly-board overflow-x-auto rounded-xl border bg-white p-3">
           <div className="grid min-w-[840px] lg:min-w-[980px] grid-cols-7 gap-3">
             {days.map((day) => {
               const key = dayKey(day)
               const items = grouped[key] || []
               return (
-                <div key={key} className="rounded-xl border bg-gray-50/70 p-2 min-h-[360px] lg:min-h-[520px]">
+                <div key={key} className="weekly-column rounded-xl border bg-gray-50/70 p-2 min-h-[360px] lg:min-h-[520px]">
                   <div
                     onDragOver={(e) => {
                       e.preventDefault()
@@ -329,7 +329,7 @@ export default function WeeklySchedule() {
                       </div>
                     )}
                     {items.length === 0 && (
-                      <div className="rounded-lg border border-dashed p-2 text-center text-xs text-gray-400">No tasks</div>
+                      <div className="weekly-empty rounded-lg border border-dashed p-2 text-center text-xs text-gray-400">No tasks</div>
                     )}
                   </div>
                   </div>
