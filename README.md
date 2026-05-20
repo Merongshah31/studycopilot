@@ -70,59 +70,6 @@ Frontend default: `http://localhost:5173`
 
 ---
 
-## Environment Variables
-
-## Frontend (`frontend/.env`)
-
-```env
-VITE_API_BASE_URL=http://localhost:5050/api
-VITE_SUPABASE_URL=https://<your-project-ref>.supabase.co
-VITE_SUPABASE_ANON_KEY=<your-supabase-anon-key>
-
-# Optional fallback:
-VITE_API_URL=/api
-
-# Optional:
-VITE_FORCE_GUEST_LOGIN=false
-```
-
-## Backend (`backend/.env`)
-
-Use `backend/.env.example` as reference.
-
-```env
-PORT=5050
-JWT_SECRET=<strong-random-secret>
-
-SUPABASE_URL=https://<your-project-ref>.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=<service-role-or-secret-key>
-
-DEEPSEEK_API_URL=https://api.deepseek.com/chat/completions
-DEEPSEEK_MODEL=deepseek-chat
-DEEPSEEK_API_KEY=<deepseek-key>
-
-GOOGLE_CLIENT_ID=<google-client-id>
-GOOGLE_CLIENT_SECRET=<google-client-secret>
-GOOGLE_REDIRECT_URI=http://localhost:5050/api/calendar/callback
-FRONTEND_URL=http://localhost:5173
-```
-
----
-
-## Supabase Setup (Minimum)
-
-1. Create Supabase project
-2. Run SQL schema from:
-   - `backend/supabase/schema.sql`
-3. Create Storage bucket:
-   - `schedule-pdfs` (private)
-4. Configure Auth URL settings:
-   - Site URL: your frontend URL
-   - Redirect URLs: include your frontend URL(s)
-5. Enable Google provider in Supabase Auth and set Google OAuth credentials
-
----
-
 ## Deploy (Current Recommended)
 
 ## Frontend on Vercel
