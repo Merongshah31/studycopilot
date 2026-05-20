@@ -1,4 +1,4 @@
-# StudyPilot
+# StudyCoPilot
 
 StudyPilot is an AI-powered student productivity web app for:
 - task management
